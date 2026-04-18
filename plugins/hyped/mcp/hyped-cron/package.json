@@ -1,0 +1,11 @@
+{
+  "name": "hyped-cron-mcp",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "bun install --no-summary && bun server.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  }
+}

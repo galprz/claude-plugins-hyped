@@ -7,52 +7,37 @@ Use this skill when the user asks to schedule a recurring task, set a reminder, 
 - "remind me to X every day at Y"
 - "schedule X every N hours"
 - "run X automatically every morning"
-- "set up a daily/weekly task"
+- "set up a daily/weekly/one-time task"
 
-## Step 1 — Determine the schedule
+## How to create a job
 
-Convert natural language to one of these formats:
+Call the `cron_create` MCP tool. Provide:
+- `schedule` — converted from natural language:
+  - `"every 2h"` / `"every 30m"` / `"every 1d"`
+  - `"0 9 * * *"` (5-field cron, minute hour dom month dow)
+  - `"in 30m"` / `"in 2h"` (one-shot from now)
+- `prompt` — self-contained instruction (no conversation history when it runs)
+- `name` — optional short display name
+- `timezone` — optional IANA e.g. `"America/New_York"` (when user says a local time)
 
-| User says | Schedule JSON |
-|-----------|--------------|
-| "every day at 2pm" | `{"type":"cron","expr":"0 14 * * *"}` |
-| "every 2 hours" | `{"type":"every","seconds":7200}` |
-| "weekdays at 9am" | `{"type":"cron","expr":"0 9 * * 1-5"}` |
-| "once on May 1st at 9am UTC" | `{"type":"once","at":"2026-05-01T09:00:00Z"}` |
+Do NOT pass chat_id or working_dir — captured automatically from session context.
 
-Cron expressions are 5-field UTC: `minute hour day-of-month month day-of-week`.
+| User says | schedule value |
+|-----------|---------------|
+| "every day at 2pm" | `"0 14 * * *"` |
+| "every 2 hours" | `"every 2h"` |
+| "weekdays at 9am ET" | `"0 9 * * 1-5"` + `timezone: "America/New_York"` |
+| "once in 30 minutes" | `"in 30m"` |
 
-## Step 2 — Get the chat_id
+## How to manage jobs
 
-Your system prompt contains: "The Telegram chat_id for this conversation is <id>". Copy that exact integer.
+- List: call `cron_list`
+- Pause: call `cron_pause` with `id`
+- Resume: call `cron_resume` with `id`
+- Delete: call `cron_remove` with `id`
 
-## Step 3 — Read the jobs file
+IDs are shown in `cron_list` output.
 
-Read `.hyped/cron/jobs.json` relative to the working directory. If the file does not exist, treat it as an empty array `[]`.
+## Confirm to the user
 
-## Step 4 — Build the new job entry
-
-```json
-{
-  "id": "<generate a fresh lowercase UUIDv4>",
-  "name": "<short human-friendly name, e.g. 'practice reminder'>",
-  "prompt": "<self-contained prompt the scheduler will send to a fresh Claude session — no conversation history>",
-  "schedule": <schedule JSON from Step 1>,
-  "chat_id": <integer from Step 2>,
-  "thread_id": null,
-  "enabled": true,
-  "next_run": "<next occurrence in RFC3339 UTC>",
-  "last_run": null,
-  "created_at": "<now in RFC3339 UTC>"
-}
-```
-
-## Step 5 — Write the updated jobs file
-
-Append the new entry to the array read in Step 3 and write it back to `.hyped/cron/jobs.json`.
-
-IMPORTANT: Do NOT use `CronCreate` or any built-in scheduling tool. The hyped-cron scheduler in the daemon reads this file on disk — that is the only correct mechanism.
-
-## Step 6 — Confirm to the user
-
-Reply with a short confirmation: job name, schedule in plain English, and next run time in the user's local context (use UTC if unknown). Do not mention "session-based", "7-day limit", or any Claude Code scheduling internals — those do not apply here.
+Reply with: job name, schedule in plain English, next run time. Keep it short.
