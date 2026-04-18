@@ -1,8 +1,9 @@
 import { randomUUID } from 'crypto';
 import { type CronJob, loadJobs, saveJobs } from './jobs.ts';
 import { computeNextRun, parseSchedule, scheduleDisplay } from './schedule.ts';
+import { createIsolatedWorkspace, type AgentDef } from './workspace.ts';
 
-function getContext(): { chatId: number; threadId: number | null; workingDir: string } {
+function getContext(): { chatId: number; threadId: number | null; workingDir: string; pluginRoot: string } {
   const chatIdStr = process.env.HYPED_CHAT_ID;
   const workingDir = process.env.HYPED_WORKING_DIR;
   if (!chatIdStr || !workingDir) {
@@ -12,7 +13,8 @@ function getContext(): { chatId: number; threadId: number | null; workingDir: st
   if (isNaN(chatId)) throw new Error(`Invalid HYPED_CHAT_ID: ${chatIdStr}`);
   const threadIdStr = process.env.HYPED_THREAD_ID;
   const threadId = threadIdStr && threadIdStr !== '' ? parseInt(threadIdStr, 10) : null;
-  return { chatId, threadId, workingDir };
+  const pluginRoot = process.env.CLAUDE_PLUGIN_ROOT ?? '';
+  return { chatId, threadId, workingDir, pluginRoot };
 }
 
 export async function handleCronCreate(args: {
@@ -20,12 +22,31 @@ export async function handleCronCreate(args: {
   prompt: string;
   name?: string;
   timezone?: string;
+  workspace_mode?: 'project' | 'isolated';
+  tools?: string[];
+  instructions?: string;
+  agents?: AgentDef[];
 }): Promise<string> {
-  const { chatId, threadId, workingDir } = getContext();
+  const { chatId, threadId, workingDir, pluginRoot } = getContext();
   const schedule = parseSchedule(args.schedule);
   const nextRun = computeNextRun(schedule, args.timezone);
   const id = randomUUID().replace(/-/g, '').slice(0, 8);
   const name = args.name ?? args.prompt.slice(0, 40);
+  const workspaceMode = args.workspace_mode ?? 'project';
+
+  // Create isolated workspace if requested
+  let jobWorkingDir: string | null = null;
+  if (workspaceMode === 'isolated') {
+    jobWorkingDir = await createIsolatedWorkspace(
+      id,
+      name,
+      args.schedule,
+      args.tools ?? [],
+      args.instructions ?? '',
+      pluginRoot,
+      args.agents ?? [],
+    );
+  }
 
   const job: CronJob = {
     id,
@@ -43,13 +64,26 @@ export async function handleCronCreate(args: {
     consecutive_errors: 0,
     last_error: null,
     created_at: new Date().toISOString(),
+    workspace_mode: workspaceMode,
+    job_working_dir: jobWorkingDir,
   };
 
   const jobs = loadJobs(workingDir);
   jobs.push(job);
   saveJobs(workingDir, jobs);
 
-  return `✅ Job "${name}" created — ${scheduleDisplay(schedule)}\nID: ${id}\nNext run: ${new Date(nextRun).toUTCString()}`;
+  const toolsInfo = workspaceMode === 'isolated' && (args.tools ?? []).length > 0
+    ? ` with ${(args.tools ?? []).join(', ')}`
+    : '';
+
+  return [
+    `✅ Job "${name}" created — ${scheduleDisplay(schedule)}`,
+    `ID: ${id}`,
+    `Next run: ${new Date(nextRun).toUTCString()}`,
+    workspaceMode === 'isolated'
+      ? `Workspace: ${jobWorkingDir}${toolsInfo}`
+      : `Running in project context`,
+  ].join('\n');
 }
 
 export async function handleCronList(): Promise<string> {
@@ -65,7 +99,8 @@ export async function handleCronList(): Promise<string> {
   const lines = jobs.map(j => {
     const icon = j.status === 'active' ? '▶️' : j.status === 'paused' ? '⏸' : '❌';
     const next = new Date(j.next_run).toUTCString();
-    return `${icon} [${j.id}] ${j.name} — ${scheduleDisplay(j.schedule)}\n  Next: ${next}`;
+    const ws = j.workspace_mode === 'isolated' ? ' [isolated]' : '';
+    return `${icon} [${j.id}] ${j.name}${ws} — ${scheduleDisplay(j.schedule)}\n  Next: ${next}`;
   });
 
   return `Cron jobs for this chat:\n\n${lines.join('\n\n')}`;
@@ -89,7 +124,7 @@ export async function handleCronResume(id: string): Promise<string> {
   if (!job) throw new Error(`Job "${id}" not found in this chat`);
   job.status = 'active';
   job.enabled = true;
-  job.consecutive_errors = 0; // reset on manual resume
+  job.consecutive_errors = 0;
   saveJobs(workingDir, jobs);
   return `▶️ Job "${job.name}" resumed.`;
 }

@@ -1,3 +1,8 @@
+---
+name: hyped-projects
+description: Use when the user says /setup project or asks to register, list, or remove a project
+---
+
 # hyped-projects
 
 Use this skill when the user says `/setup project` or asks to register, list, or remove a project.
