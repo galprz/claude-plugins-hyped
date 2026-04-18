@@ -1,0 +1,8 @@
+{
+  "name": "hyped",
+  "description": "Hyped — multi-agent orchestration layer. Adds skills for project switching, cron scheduling, and browser control via Telegram.",
+  "author": {
+    "name": "Gal Peretz",
+    "email": "gal@hyped.dev"
+  }
+}
