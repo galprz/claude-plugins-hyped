@@ -1,0 +1,8 @@
+{
+    "name": "hyped-plugin",
+    "description": "plugin for hyped",
+    "version": "1.0.0",
+    "author": {
+      "name": "Gal Peretz"
+    }
+  }
