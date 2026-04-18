@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.ruff_cache/
+
+# uv
+.uv/
+
+# Node / Bun
+node_modules/
+bun.lockb
+*.tsbuildinfo
+
+# Built JS artifacts (we ship source, not dist)
+mcp/chrome-tool/dist/
+mcp/local-tts/dist/
+
+# ML model cache — models are downloaded at runtime via mlx-audio / huggingface
+# Never commit model weights
+*.bin
+*.safetensors
+*.gguf
+*.mlx
+*.pt
+*.pth
+models/
+weights/
+checkpoints/
+
+# Huggingface cache (if somehow checked out locally)
+.cache/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temp / generated audio files
+*.wav
+*.opus
+*.mp3
+tmp/
+temp/
