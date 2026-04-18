@@ -17,6 +17,8 @@ export interface CronJob {
   consecutive_errors: number;
   last_error: string | null;
   created_at: string;
+  workspace_mode: 'project' | 'isolated';
+  job_working_dir: string | null;
 }
 
 export type Schedule =

@@ -34,6 +34,32 @@ const TOOLS = [
           type: 'string',
           description: 'Optional IANA timezone e.g. "America/New_York". Use when user specifies a local time.',
         },
+        workspace_mode: {
+          type: 'string',
+          enum: ['project', 'isolated'],
+          description: '"project" = runs in current project dir (default). "isolated" = gets its own clean workspace at ~/.hyped/cron/jobs/{id}/ with its own CLAUDE.md, skills, and MCP tools.',
+        },
+        tools: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'MCP tools for isolated workspace: "chrome-tool" (browse web), "local-tts" (audio). Only relevant for isolated mode.',
+        },
+        instructions: {
+          type: 'string',
+          description: 'Standing instructions written into workspace CLAUDE.md and skill file. E.g. "Focus on AI news, skip politics". Only for isolated mode.',
+        },
+        agents: {
+          type: 'array',
+          description: 'Optional sub-agents to scaffold in .claude/agents/. Only for isolated mode.',
+          items: {
+            type: 'object',
+            required: ['name', 'instructions'],
+            properties: {
+              name: { type: 'string', description: 'Agent name e.g. "researcher"' },
+              instructions: { type: 'string', description: 'Full agent system prompt' },
+            },
+          },
+        },
       },
     },
   },
@@ -80,12 +106,21 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: TOOLS }))
 
 server.setRequestHandler(CallToolRequestSchema, async req => {
   const { name, arguments: args = {} } = req.params;
-  const a = args as Record<string, string>;
+  const a = args as Record<string, any>;
   try {
     let result: string;
     switch (name) {
       case 'cron_create':
-        result = await handleCronCreate({ schedule: a.schedule, prompt: a.prompt, name: a.name, timezone: a.timezone });
+        result = await handleCronCreate({
+          schedule: a.schedule,
+          prompt: a.prompt,
+          name: a.name,
+          timezone: a.timezone,
+          workspace_mode: a.workspace_mode,
+          tools: a.tools,
+          instructions: a.instructions,
+          agents: a.agents,
+        });
         break;
       case 'cron_list':
         result = await handleCronList();
