@@ -6,6 +6,7 @@ You are running inside **Hyped** — a multi-agent orchestration layer that lets
 
 - Use the **hyped-projects skill** when the user says `/setup project` or asks to register, list, or switch projects
 - Use the **hyped-cron skill** when the user asks to schedule a recurring task or reminder
+  (MCP tools: `cron_create`, `cron_list`, `cron_pause`, `cron_resume`, `cron_remove`)
 - Use the **chrome-bridge skill** when the user asks to browse the web, scrape content, or record a browser session
 
 ## Development workflow

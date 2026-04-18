@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "hyped-cron": {
+      "command": "bun",
+      "args": ["run", "--cwd", "${CLAUDE_PLUGIN_ROOT}/mcp/hyped-cron", "--silent", "start"]
+    }
+  }
+}
