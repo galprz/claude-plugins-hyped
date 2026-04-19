@@ -13,7 +13,7 @@
     },
     "local-tts": {
       "command": "uv",
-      "args": ["run", "--project", "${CLAUDE_PLUGIN_ROOT}/mcp/local-tts", "qwen-tts-mcp"]
+      "args": ["run", "--project", "${CLAUDE_PLUGIN_ROOT}/mcp/local-tts", "local-tts-mcp"]
     }
   }
 }
