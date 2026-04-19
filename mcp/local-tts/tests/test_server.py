@@ -7,12 +7,12 @@ def test_generate_calls_mlx_with_correct_args(tmp_path):
     fake_wav = tmp_path / "tts_testprefix.wav"
     fake_wav.write_bytes(b"RIFF")
 
-    with patch("qwen_tts_mcp.server.subprocess.run") as mock_run, \
-         patch("qwen_tts_mcp.server.uuid.uuid4") as mock_uuid:
+    with patch("local_tts_mcp.server.subprocess.run") as mock_run, \
+         patch("local_tts_mcp.server.uuid.uuid4") as mock_uuid:
         mock_uuid.return_value.hex = "testprefix12345"
         mock_run.return_value = MagicMock(returncode=0)
 
-        from qwen_tts_mcp.server import _generate
+        from local_tts_mcp.server import _generate
         result = _generate("hello world", "Chelsie", tmp_path)
 
     call_args = mock_run.call_args[0][0]
@@ -32,12 +32,12 @@ def test_generate_uses_custom_voice(tmp_path):
     fake_wav = tmp_path / "tts_testprefix.wav"
     fake_wav.write_bytes(b"RIFF")
 
-    with patch("qwen_tts_mcp.server.subprocess.run") as mock_run, \
-         patch("qwen_tts_mcp.server.uuid.uuid4") as mock_uuid:
+    with patch("local_tts_mcp.server.subprocess.run") as mock_run, \
+         patch("local_tts_mcp.server.uuid.uuid4") as mock_uuid:
         mock_uuid.return_value.hex = "testprefix12345"
         mock_run.return_value = MagicMock(returncode=0)
 
-        from qwen_tts_mcp.server import _generate
+        from local_tts_mcp.server import _generate
         _generate("test", "CustomVoice", tmp_path)
 
     call_args = mock_run.call_args[0][0]
@@ -52,10 +52,10 @@ def test_convert_to_opus_calls_ffmpeg_and_returns_opus_path(tmp_path):
     expected_opus = tmp_path / "speech.opus"
     expected_opus.write_bytes(b"")  # simulate ffmpeg output
 
-    with patch("qwen_tts_mcp.server.subprocess.run") as mock_run:
+    with patch("local_tts_mcp.server.subprocess.run") as mock_run:
         mock_run.return_value = MagicMock(returncode=0)
 
-        from qwen_tts_mcp.server import _convert_to_opus
+        from local_tts_mcp.server import _convert_to_opus
         result = _convert_to_opus(wav)
 
     call_args = mock_run.call_args[0][0]
@@ -74,14 +74,14 @@ def test_text_to_speech_returns_opus_path(tmp_path):
     fake_opus = tmp_path / "tts_testprefix.opus"
     fake_opus.write_bytes(b"")
 
-    with patch("qwen_tts_mcp.server.subprocess.run") as mock_run, \
-         patch("qwen_tts_mcp.server.uuid.uuid4") as mock_uuid, \
-         patch("qwen_tts_mcp.server.tempfile.mkdtemp") as mock_mkdtemp:
+    with patch("local_tts_mcp.server.subprocess.run") as mock_run, \
+         patch("local_tts_mcp.server.uuid.uuid4") as mock_uuid, \
+         patch("local_tts_mcp.server.tempfile.mkdtemp") as mock_mkdtemp:
         mock_uuid.return_value.hex = "testprefix12345"
         mock_run.return_value = MagicMock(returncode=0)
         mock_mkdtemp.return_value = str(tmp_path)
 
-        from qwen_tts_mcp.server import text_to_speech
+        from local_tts_mcp.server import text_to_speech
         result = text_to_speech("hello")
 
     assert result.endswith(".opus")
