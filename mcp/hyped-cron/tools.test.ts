@@ -1,5 +1,5 @@
-import { describe, expect, test, mock, beforeEach } from 'bun:test';
-import { handleCronRun } from './tools.ts';
+import { describe, expect, test, mock, beforeEach, afterEach } from 'bun:test';
+import { handleCronCreate, handleCronRun } from './tools.ts';
 
 const mockFetch = mock(() => Promise.resolve({ ok: true, status: 200 } as Response));
 
@@ -48,5 +48,41 @@ describe('handleCronRun', () => {
   test('throws with helpful message when daemon unreachable', async () => {
     mockFetch.mockRejectedValue(new Error('ECONNREFUSED'));
     await expect(handleCronRun('j1')).rejects.toThrow('Daemon unreachable at http://localhost:7891');
+  });
+});
+
+describe('handleCronCreate — timezone enforcement', () => {
+  let savedChatId: string | undefined;
+  let savedWorkingDir: string | undefined;
+
+  beforeEach(() => {
+    savedChatId = process.env.HYPED_CHAT_ID;
+    savedWorkingDir = process.env.HYPED_WORKING_DIR;
+    delete process.env.HYPED_CHAT_ID;
+    delete process.env.HYPED_WORKING_DIR;
+  });
+
+  afterEach(() => {
+    if (savedChatId !== undefined) process.env.HYPED_CHAT_ID = savedChatId;
+    if (savedWorkingDir !== undefined) process.env.HYPED_WORKING_DIR = savedWorkingDir;
+  });
+
+  test('rejects time-of-day schedule without timezone', async () => {
+    await expect(
+      handleCronCreate({ schedule: '0 8 * * *', prompt: 'test' })
+    ).rejects.toThrow('timezone_required');
+  });
+
+  test('rejects time-of-day schedule with invalid timezone', async () => {
+    await expect(
+      handleCronCreate({ schedule: '0 8 * * *', prompt: 'test', timezone: 'Foo/Bar' })
+    ).rejects.toThrow('invalid_timezone');
+  });
+
+  test('allows interval schedule without timezone', async () => {
+    // Should not throw timezone error — will fail later on missing env vars, which is fine
+    await expect(
+      handleCronCreate({ schedule: 'every 2h', prompt: 'test' })
+    ).rejects.toThrow('HYPED_CHAT_ID');
   });
 });

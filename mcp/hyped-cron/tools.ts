@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto';
 import { type CronJob, loadJobs, saveJobs } from './jobs.ts';
-import { computeNextRun, parseSchedule, scheduleDisplay } from './schedule.ts';
+import { computeNextRun, isTimeOfDay, parseSchedule, scheduleDisplay, validateTimezone } from './schedule.ts';
 import { createIsolatedWorkspace, type AgentDef } from './workspace.ts';
 
 function getContext(): { chatId: number; threadId: number | null; workingDir: string; pluginRoot: string } {
@@ -27,6 +27,21 @@ export async function handleCronCreate(args: {
   instructions?: string;
   agents?: AgentDef[];
 }): Promise<string> {
+  // Timezone enforcement — runs before any env/fs access
+  if (isTimeOfDay(args.schedule) && !args.timezone) {
+    throw new Error(
+      `timezone_required: Schedule "${args.schedule}" fires at a specific time of day. ` +
+      `Ask the user: "What timezone are you in? (e.g. America/New_York, Europe/London, Asia/Tokyo)" ` +
+      `then retry cron_create with timezone: "<their answer>".`
+    );
+  }
+  if (args.timezone && !validateTimezone(args.timezone)) {
+    throw new Error(
+      `invalid_timezone: "${args.timezone}" is not a valid IANA timezone. ` +
+      `Common examples: America/New_York, Europe/London, Asia/Tokyo, Australia/Sydney.`
+    );
+  }
+
   const { chatId, threadId, workingDir, pluginRoot } = getContext();
   const schedule = parseSchedule(args.schedule);
   const nextRun = computeNextRun(schedule, args.timezone);
