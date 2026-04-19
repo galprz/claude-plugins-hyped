@@ -78,3 +78,27 @@ export function scheduleDisplay(schedule: Schedule): string {
   }
   return `cron: ${schedule.expr}`;
 }
+
+// A schedule fires at a specific time-of-day if it is a 5-field cron expr
+// with a non-wildcard hour field (field index 1).
+// Interval ("every Xh"), one-shot ("in Xm"), and ISO datetimes are not time-of-day.
+export function isTimeOfDay(s: string): boolean {
+  s = s.trim();
+  if (s.startsWith('every ') || s.startsWith('in ') || s.includes('T')) return false;
+  const parts = s.split(/\s+/);
+  if (parts.length !== 5) return false;
+  const hour = parts[1];
+  return hour !== '*';
+}
+
+// Validate IANA timezone using the runtime's built-in list.
+export function validateTimezone(tz: string): boolean {
+  if (!tz) return false;
+  try {
+    return (Intl as unknown as { supportedValuesOf: (k: string) => string[] })
+      .supportedValuesOf('timeZone')
+      .includes(tz);
+  } catch {
+    return false;
+  }
+}
