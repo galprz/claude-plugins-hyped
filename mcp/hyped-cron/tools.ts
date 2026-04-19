@@ -139,3 +139,16 @@ export async function handleCronRemove(id: string): Promise<string> {
   saveJobs(workingDir, jobs);
   return `🗑 Job "${name}" deleted.`;
 }
+
+export async function handleCronRun(id: string): Promise<string> {
+  const daemonUrl = process.env.HYPED_DAEMON_URL ?? 'http://localhost:7891';
+  let res: Response;
+  try {
+    res = await fetch(`${daemonUrl}/api/cron/jobs/${id}/run`, { method: 'POST' });
+  } catch (e) {
+    throw new Error(`Daemon unreachable at ${daemonUrl}: ${e}`);
+  }
+  if (res.status === 404) throw new Error(`Job "${id}" not found`);
+  if (!res.ok) throw new Error(`Daemon returned ${res.status}`);
+  return `▶️ Job "${id}" fired immediately.`;
+}
