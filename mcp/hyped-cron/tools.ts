@@ -5,9 +5,9 @@ import { createIsolatedWorkspace, type AgentDef } from './workspace.ts';
 
 function getContext(): { chatId: number; threadId: number | null; workingDir: string; pluginRoot: string } {
   const chatIdStr = process.env.HYPED_CHAT_ID;
-  const workingDir = process.env.HYPED_WORKING_DIR;
-  if (!chatIdStr || !workingDir) {
-    throw new Error('HYPED_CHAT_ID and HYPED_WORKING_DIR must be set');
+  const workingDir = process.env.HYPED_WORKING_DIR ?? '';
+  if (!chatIdStr) {
+    throw new Error('HYPED_CHAT_ID must be set');
   }
   const chatId = parseInt(chatIdStr, 10);
   if (isNaN(chatId)) throw new Error(`Invalid HYPED_CHAT_ID: ${chatIdStr}`);
@@ -42,7 +42,7 @@ export async function handleCronCreate(args: {
     );
   }
 
-  const { chatId, threadId, workingDir, pluginRoot } = getContext();
+  const { chatId, threadId, pluginRoot } = getContext();
   const schedule = parseSchedule(args.schedule);
   const nextRun = computeNextRun(schedule, args.timezone);
   const id = randomUUID().replace(/-/g, '').slice(0, 8);
@@ -50,9 +50,9 @@ export async function handleCronCreate(args: {
   const workspaceMode = args.workspace_mode ?? 'project';
 
   // Create isolated workspace if requested
-  let jobWorkingDir: string | null = null;
+  let projectDir: string | null = null;
   if (workspaceMode === 'isolated') {
-    jobWorkingDir = await createIsolatedWorkspace(
+    projectDir = await createIsolatedWorkspace(
       id,
       name,
       args.schedule,
@@ -79,13 +79,12 @@ export async function handleCronCreate(args: {
     consecutive_errors: 0,
     last_error: null,
     created_at: new Date().toISOString(),
-    workspace_mode: workspaceMode,
-    job_working_dir: jobWorkingDir,
+    project_dir: projectDir,
   };
 
-  const jobs = loadJobs(workingDir);
+  const jobs = loadJobs();
   jobs.push(job);
-  saveJobs(workingDir, jobs);
+  saveJobs(jobs);
 
   const toolsInfo = workspaceMode === 'isolated' && (args.tools ?? []).length > 0
     ? ` with ${(args.tools ?? []).join(', ')}`
@@ -96,14 +95,14 @@ export async function handleCronCreate(args: {
     `ID: ${id}`,
     `Next run: ${new Date(nextRun).toUTCString()}`,
     workspaceMode === 'isolated'
-      ? `Workspace: ${jobWorkingDir}${toolsInfo}`
+      ? `Workspace: ${projectDir}${toolsInfo}`
       : `Running in project context`,
   ].join('\n');
 }
 
 export async function handleCronList(): Promise<string> {
-  const { chatId, workingDir } = getContext();
-  const jobs = loadJobs(workingDir).filter(
+  const { chatId } = getContext();
+  const jobs = loadJobs().filter(
     j => j.chat_id === chatId && j.status !== 'completed'
   );
 
@@ -114,7 +113,7 @@ export async function handleCronList(): Promise<string> {
   const lines = jobs.map(j => {
     const icon = j.status === 'active' ? '▶️' : j.status === 'paused' ? '⏸' : '❌';
     const next = new Date(j.next_run).toUTCString();
-    const ws = j.workspace_mode === 'isolated' ? ' [isolated]' : '';
+    const ws = j.project_dir ? ' [isolated]' : '';
     return `${icon} [${j.id}] ${j.name}${ws} — ${scheduleDisplay(j.schedule)}\n  Next: ${next}`;
   });
 
@@ -122,36 +121,36 @@ export async function handleCronList(): Promise<string> {
 }
 
 export async function handleCronPause(id: string): Promise<string> {
-  const { chatId, workingDir } = getContext();
-  const jobs = loadJobs(workingDir);
+  const { chatId } = getContext();
+  const jobs = loadJobs();
   const job = jobs.find(j => j.id.startsWith(id) && j.chat_id === chatId);
   if (!job) throw new Error(`Job "${id}" not found in this chat`);
   job.status = 'paused';
   job.enabled = false;
-  saveJobs(workingDir, jobs);
+  saveJobs(jobs);
   return `⏸ Job "${job.name}" paused.`;
 }
 
 export async function handleCronResume(id: string): Promise<string> {
-  const { chatId, workingDir } = getContext();
-  const jobs = loadJobs(workingDir);
+  const { chatId } = getContext();
+  const jobs = loadJobs();
   const job = jobs.find(j => j.id.startsWith(id) && j.chat_id === chatId);
   if (!job) throw new Error(`Job "${id}" not found in this chat`);
   job.status = 'active';
   job.enabled = true;
   job.consecutive_errors = 0;
-  saveJobs(workingDir, jobs);
+  saveJobs(jobs);
   return `▶️ Job "${job.name}" resumed.`;
 }
 
 export async function handleCronRemove(id: string): Promise<string> {
-  const { chatId, workingDir } = getContext();
-  const jobs = loadJobs(workingDir);
+  const { chatId } = getContext();
+  const jobs = loadJobs();
   const idx = jobs.findIndex(j => j.id.startsWith(id) && j.chat_id === chatId);
   if (idx === -1) throw new Error(`Job "${id}" not found in this chat`);
   const name = jobs[idx].name;
   jobs.splice(idx, 1);
-  saveJobs(workingDir, jobs);
+  saveJobs(jobs);
   return `🗑 Job "${name}" deleted.`;
 }
 

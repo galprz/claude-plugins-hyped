@@ -1,5 +1,33 @@
 import { describe, expect, test, mock, beforeEach, afterEach } from 'bun:test';
+import { existsSync } from 'fs';
+import { homedir } from 'os';
+import { join } from 'path';
 import { handleCronCreate, handleCronRun } from './tools.ts';
+
+describe('jobs global path', () => {
+  test('saveJobs creates file at ~/.hyped/cron/jobs.json', async () => {
+    const { saveJobs } = await import('./jobs.ts');
+    saveJobs([]);
+    expect(existsSync(join(homedir(), '.hyped', 'cron', 'jobs.json'))).toBe(true);
+  });
+
+  test('loadJobs returns array (does not throw)', async () => {
+    const { loadJobs } = await import('./jobs.ts');
+    const result = loadJobs();
+    expect(Array.isArray(result)).toBe(true);
+  });
+
+  test('round trip: saveJobs then loadJobs', async () => {
+    const { saveJobs, loadJobs } = await import('./jobs.ts');
+    const before = loadJobs();
+    const testJob = { id: 'test-roundtrip-xyz', name: 'Test', prompt: 'go', project_dir: null } as any;
+    saveJobs([...before, testJob]);
+    const after = loadJobs();
+    expect(after.some((j: any) => j.id === 'test-roundtrip-xyz')).toBe(true);
+    // Cleanup
+    saveJobs(before);
+  });
+});
 
 const mockFetch = mock(() => Promise.resolve({ ok: true, status: 200 } as Response));
 
