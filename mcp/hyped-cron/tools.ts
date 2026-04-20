@@ -3,18 +3,15 @@ import { type CronJob, loadJobs, saveJobs } from './jobs.ts';
 import { computeNextRun, isTimeOfDay, parseSchedule, scheduleDisplay, validateTimezone } from './schedule.ts';
 import { createIsolatedWorkspace, type AgentDef } from './workspace.ts';
 
-function getContext(): { chatId: number; threadId: number | null; workingDir: string; pluginRoot: string } {
+function getContext(): { chatId: number; threadId: number | null; pluginRoot: string } {
   const chatIdStr = process.env.HYPED_CHAT_ID;
-  const workingDir = process.env.HYPED_WORKING_DIR ?? '';
-  if (!chatIdStr) {
-    throw new Error('HYPED_CHAT_ID must be set');
-  }
+  if (!chatIdStr) throw new Error('HYPED_CHAT_ID must be set');
   const chatId = parseInt(chatIdStr, 10);
   if (isNaN(chatId)) throw new Error(`Invalid HYPED_CHAT_ID: ${chatIdStr}`);
   const threadIdStr = process.env.HYPED_THREAD_ID;
   const threadId = threadIdStr && threadIdStr !== '' ? parseInt(threadIdStr, 10) : null;
   const pluginRoot = process.env.CLAUDE_PLUGIN_ROOT ?? '';
-  return { chatId, threadId, workingDir, pluginRoot };
+  return { chatId, threadId, pluginRoot };
 }
 
 export async function handleCronCreate(args: {
@@ -22,7 +19,7 @@ export async function handleCronCreate(args: {
   prompt: string;
   name?: string;
   timezone?: string;
-  workspace_mode?: 'project' | 'isolated';
+  project_dir?: string;
   tools?: string[];
   instructions?: string;
   agents?: AgentDef[];
@@ -47,21 +44,17 @@ export async function handleCronCreate(args: {
   const nextRun = computeNextRun(schedule, args.timezone);
   const id = randomUUID().replace(/-/g, '').slice(0, 8);
   const name = args.name ?? args.prompt.slice(0, 40);
-  const workspaceMode = args.workspace_mode ?? 'project';
 
-  // Create isolated workspace if requested
-  let projectDir: string | null = null;
-  if (workspaceMode === 'isolated') {
-    projectDir = await createIsolatedWorkspace(
-      id,
-      name,
-      args.schedule,
-      args.tools ?? [],
-      args.instructions ?? '',
-      pluginRoot,
-      args.agents ?? [],
-    );
-  }
+  // Always provision the job workspace
+  const jobWorkspacePath = await createIsolatedWorkspace(
+    id,
+    name,
+    args.schedule,
+    args.tools ?? [],
+    args.instructions ?? '',
+    pluginRoot,
+    args.agents ?? [],
+  );
 
   const job: CronJob = {
     id,
@@ -79,24 +72,22 @@ export async function handleCronCreate(args: {
     consecutive_errors: 0,
     last_error: null,
     created_at: new Date().toISOString(),
-    project_dir: projectDir,
+    project_dir: args.project_dir ?? null,
   };
 
   const jobs = loadJobs();
   jobs.push(job);
   saveJobs(jobs);
 
-  const toolsInfo = workspaceMode === 'isolated' && (args.tools ?? []).length > 0
-    ? ` with ${(args.tools ?? []).join(', ')}`
-    : '';
+  const contextInfo = args.project_dir
+    ? `Project: ${args.project_dir}`
+    : `Workspace: ${jobWorkspacePath}`;
 
   return [
     `✅ Job "${name}" created — ${scheduleDisplay(schedule)}`,
     `ID: ${id}`,
     `Next run: ${new Date(nextRun).toUTCString()}`,
-    workspaceMode === 'isolated'
-      ? `Workspace: ${projectDir}${toolsInfo}`
-      : `Running in project context`,
+    contextInfo,
   ].join('\n');
 }
 
@@ -113,8 +104,8 @@ export async function handleCronList(): Promise<string> {
   const lines = jobs.map(j => {
     const icon = j.status === 'active' ? '▶️' : j.status === 'paused' ? '⏸' : '❌';
     const next = new Date(j.next_run).toUTCString();
-    const ws = j.project_dir ? ' [isolated]' : '';
-    return `${icon} [${j.id}] ${j.name}${ws} — ${scheduleDisplay(j.schedule)}\n  Next: ${next}`;
+    const ctx = j.project_dir ? ` [project: ${j.project_dir}]` : ' [isolated]';
+    return `${icon} [${j.id}] ${j.name}${ctx} — ${scheduleDisplay(j.schedule)}\n  Next: ${next}`;
   });
 
   return `Cron jobs for this chat:\n\n${lines.join('\n\n')}`;

@@ -1,8 +1,9 @@
 import { describe, expect, test, mock, beforeEach, afterEach } from 'bun:test';
-import { existsSync } from 'fs';
+import { existsSync, rmSync } from 'fs';
 import { homedir } from 'os';
 import { join } from 'path';
 import { handleCronCreate, handleCronRun } from './tools.ts';
+import { loadJobs, saveJobs } from './jobs.ts';
 
 describe('jobs global path', () => {
   test('saveJobs creates file at ~/.hyped/cron/jobs.json', async () => {
@@ -81,18 +82,14 @@ describe('handleCronRun', () => {
 
 describe('handleCronCreate — timezone enforcement', () => {
   let savedChatId: string | undefined;
-  let savedWorkingDir: string | undefined;
 
   beforeEach(() => {
     savedChatId = process.env.HYPED_CHAT_ID;
-    savedWorkingDir = process.env.HYPED_WORKING_DIR;
     delete process.env.HYPED_CHAT_ID;
-    delete process.env.HYPED_WORKING_DIR;
   });
 
   afterEach(() => {
     if (savedChatId !== undefined) process.env.HYPED_CHAT_ID = savedChatId;
-    if (savedWorkingDir !== undefined) process.env.HYPED_WORKING_DIR = savedWorkingDir;
   });
 
   test('rejects time-of-day schedule without timezone', async () => {
@@ -112,5 +109,100 @@ describe('handleCronCreate — timezone enforcement', () => {
     await expect(
       handleCronCreate({ schedule: 'every 2h', prompt: 'test' })
     ).rejects.toThrow('HYPED_CHAT_ID');
+  });
+});
+
+describe('handleCronCreate', () => {
+  let origChatId: string | undefined;
+  let origThreadId: string | undefined;
+  let origPluginRoot: string | undefined;
+  let createdJobIds: string[] = [];
+
+  beforeEach(() => {
+    origChatId = process.env.HYPED_CHAT_ID;
+    origThreadId = process.env.HYPED_THREAD_ID;
+    origPluginRoot = process.env.CLAUDE_PLUGIN_ROOT;
+    process.env.HYPED_CHAT_ID = '99999';
+    process.env.HYPED_THREAD_ID = '';
+    process.env.CLAUDE_PLUGIN_ROOT = join(homedir(), '.hyped', 'cron', 'plugin-root-test');
+    createdJobIds = [];
+  });
+
+  function cleanup() {
+    process.env.HYPED_CHAT_ID = origChatId;
+    process.env.HYPED_THREAD_ID = origThreadId;
+    process.env.CLAUDE_PLUGIN_ROOT = origPluginRoot;
+    const current = loadJobs();
+    const filtered = current.filter((j: any) => !createdJobIds.includes(j.id));
+    saveJobs(filtered);
+    for (const id of createdJobIds) {
+      const wsPath = join(homedir(), '.hyped', 'cron', 'jobs', id);
+      rmSync(wsPath, { recursive: true, force: true });
+    }
+  }
+
+  test('saves job to global jobs file', async () => {
+    const before = loadJobs().length;
+    await handleCronCreate({ schedule: 'every 1h', prompt: 'cache-safe test' });
+    const after = loadJobs();
+    expect(after.length).toBe(before + 1);
+    const job = after[after.length - 1];
+    createdJobIds.push(job.id);
+    cleanup();
+  });
+
+  test('project_dir is null by default', async () => {
+    await handleCronCreate({ schedule: 'every 1h', prompt: 'test job no project' });
+    const jobs = loadJobs();
+    const job = jobs[jobs.length - 1];
+    createdJobIds.push(job.id);
+    expect(job.project_dir).toBeNull();
+    cleanup();
+  });
+
+  test('stores project_dir when provided', async () => {
+    await handleCronCreate({ schedule: 'every 1h', prompt: 'test job with project', project_dir: '/tmp/my-project' });
+    const jobs = loadJobs();
+    const job = jobs[jobs.length - 1];
+    createdJobIds.push(job.id);
+    expect(job.project_dir).toBe('/tmp/my-project');
+    cleanup();
+  });
+
+  test('job has no workspace_mode field', async () => {
+    await handleCronCreate({ schedule: 'every 1h', prompt: 'check no workspace_mode' });
+    const jobs = loadJobs();
+    const job = jobs[jobs.length - 1] as any;
+    createdJobIds.push(job.id);
+    expect(job.workspace_mode).toBeUndefined();
+    cleanup();
+  });
+
+  test('always provisions workspace even without project_dir', async () => {
+    await handleCronCreate({ schedule: 'every 1h', prompt: 'do stuff' });
+    const jobs = loadJobs();
+    const job = jobs[jobs.length - 1];
+    createdJobIds.push(job.id);
+    const wsPath = join(homedir(), '.hyped', 'cron', 'jobs', job.id);
+    expect(existsSync(join(wsPath, 'CLAUDE.md'))).toBe(true);
+    expect(existsSync(join(wsPath, '.claude', 'settings.local.json'))).toBe(true);
+    cleanup();
+  });
+
+  test('result message shows Workspace when no project_dir', async () => {
+    const result = await handleCronCreate({ schedule: 'every 1h', prompt: 'workspace msg test' });
+    const jobs = loadJobs();
+    createdJobIds.push(jobs[jobs.length - 1].id);
+    expect(result).toContain('Workspace:');
+    expect(result).not.toContain('Project:');
+    cleanup();
+  });
+
+  test('result message shows Project when project_dir provided', async () => {
+    const result = await handleCronCreate({ schedule: 'every 1h', prompt: 'project msg test', project_dir: '/my/proj' });
+    const jobs = loadJobs();
+    createdJobIds.push(jobs[jobs.length - 1].id);
+    expect(result).toContain('Project: /my/proj');
+    cleanup();
   });
 });
