@@ -14,6 +14,10 @@
     "local-tts": {
       "command": "uv",
       "args": ["run", "--project", "${CLAUDE_PLUGIN_ROOT}/mcp/local-tts", "qwen-tts-mcp"]
+    },
+    "local-tunnel": {
+      "command": "bun",
+      "args": ["run", "--cwd", "${CLAUDE_PLUGIN_ROOT}/mcp/local-tunnel", "--silent", "start"]
     }
   }
 }
