@@ -11,6 +11,7 @@ const { TunnelManager } = await import('./tunnel.ts')
 
 describe('TunnelManager.open', () => {
   beforeEach(() => {
+    mockForward.mockClear()
     mockForward.mockImplementation(() =>
       Promise.resolve({ url: () => 'https://abc123.ngrok.io', close: mockClose })
     )
@@ -43,10 +44,20 @@ describe('TunnelManager.open', () => {
     delete process.env.NGROK_AUTHTOKEN
     await expect(new TunnelManager().open('http://localhost:3000')).rejects.toThrow('NGROK_AUTHTOKEN')
   })
+
+  test('throws and closes listener when url() returns null', async () => {
+    mockForward.mockImplementation(() =>
+      Promise.resolve({ url: () => null, close: mockClose })
+    )
+    const m = new TunnelManager()
+    await expect(m.open('http://localhost:3000')).rejects.toThrow('no URL')
+    expect(mockClose).toHaveBeenCalledTimes(1)
+  })
 })
 
 describe('TunnelManager.close', () => {
   beforeEach(() => {
+    mockForward.mockClear()
     mockForward.mockImplementation(() =>
       Promise.resolve({ url: () => 'https://abc123.ngrok.io', close: mockClose })
     )
@@ -71,6 +82,7 @@ describe('TunnelManager.close', () => {
 
 describe('TunnelManager.list', () => {
   beforeEach(() => {
+    mockForward.mockClear()
     mockForward.mockImplementation(() =>
       Promise.resolve({ url: () => 'https://abc123.ngrok.io', close: mockClose })
     )
@@ -96,6 +108,7 @@ describe('TunnelManager.list', () => {
 
 describe('TunnelManager.status', () => {
   beforeEach(() => {
+    mockForward.mockClear()
     mockForward.mockImplementation(() =>
       Promise.resolve({ url: () => 'https://abc123.ngrok.io', close: mockClose })
     )
