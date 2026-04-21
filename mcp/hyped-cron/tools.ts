@@ -1,20 +1,17 @@
 import { randomUUID } from 'crypto';
 import { type CronJob, loadJobs, saveJobs } from './jobs.ts';
-import { computeNextRun, parseSchedule, scheduleDisplay } from './schedule.ts';
+import { computeNextRun, isTimeOfDay, parseSchedule, scheduleDisplay, validateTimezone } from './schedule.ts';
 import { createIsolatedWorkspace, type AgentDef } from './workspace.ts';
 
-function getContext(): { chatId: number; threadId: number | null; workingDir: string; pluginRoot: string } {
+function getContext(): { chatId: number; threadId: number | null; pluginRoot: string } {
   const chatIdStr = process.env.HYPED_CHAT_ID;
-  const workingDir = process.env.HYPED_WORKING_DIR;
-  if (!chatIdStr || !workingDir) {
-    throw new Error('HYPED_CHAT_ID and HYPED_WORKING_DIR must be set');
-  }
+  if (!chatIdStr) throw new Error('HYPED_CHAT_ID must be set');
   const chatId = parseInt(chatIdStr, 10);
   if (isNaN(chatId)) throw new Error(`Invalid HYPED_CHAT_ID: ${chatIdStr}`);
   const threadIdStr = process.env.HYPED_THREAD_ID;
   const threadId = threadIdStr && threadIdStr !== '' ? parseInt(threadIdStr, 10) : null;
   const pluginRoot = process.env.CLAUDE_PLUGIN_ROOT ?? '';
-  return { chatId, threadId, workingDir, pluginRoot };
+  return { chatId, threadId, pluginRoot };
 }
 
 export async function handleCronCreate(args: {
@@ -22,31 +19,42 @@ export async function handleCronCreate(args: {
   prompt: string;
   name?: string;
   timezone?: string;
-  workspace_mode?: 'project' | 'isolated';
+  project_dir?: string;
   tools?: string[];
   instructions?: string;
   agents?: AgentDef[];
 }): Promise<string> {
-  const { chatId, threadId, workingDir, pluginRoot } = getContext();
+  // Timezone enforcement — runs before any env/fs access
+  if (isTimeOfDay(args.schedule) && !args.timezone) {
+    throw new Error(
+      `timezone_required: Schedule "${args.schedule}" fires at a specific time of day. ` +
+      `Ask the user: "What timezone are you in? (e.g. America/New_York, Europe/London, Asia/Tokyo)" ` +
+      `then retry cron_create with timezone: "<their answer>".`
+    );
+  }
+  if (args.timezone && !validateTimezone(args.timezone)) {
+    throw new Error(
+      `invalid_timezone: "${args.timezone}" is not a valid IANA timezone. ` +
+      `Common examples: America/New_York, Europe/London, Asia/Tokyo, Australia/Sydney.`
+    );
+  }
+
+  const { chatId, threadId, pluginRoot } = getContext();
   const schedule = parseSchedule(args.schedule);
   const nextRun = computeNextRun(schedule, args.timezone);
   const id = randomUUID().replace(/-/g, '').slice(0, 8);
   const name = args.name ?? args.prompt.slice(0, 40);
-  const workspaceMode = args.workspace_mode ?? 'project';
 
-  // Create isolated workspace if requested
-  let jobWorkingDir: string | null = null;
-  if (workspaceMode === 'isolated') {
-    jobWorkingDir = await createIsolatedWorkspace(
-      id,
-      name,
-      args.schedule,
-      args.tools ?? [],
-      args.instructions ?? '',
-      pluginRoot,
-      args.agents ?? [],
-    );
-  }
+  // Always provision the job workspace
+  const jobWorkspacePath = await createIsolatedWorkspace(
+    id,
+    name,
+    args.schedule,
+    args.tools ?? [],
+    args.instructions ?? '',
+    pluginRoot,
+    args.agents ?? [],
+  );
 
   const job: CronJob = {
     id,
@@ -64,31 +72,28 @@ export async function handleCronCreate(args: {
     consecutive_errors: 0,
     last_error: null,
     created_at: new Date().toISOString(),
-    workspace_mode: workspaceMode,
-    job_working_dir: jobWorkingDir,
+    project_dir: args.project_dir ?? null,
   };
 
-  const jobs = loadJobs(workingDir);
+  const jobs = loadJobs();
   jobs.push(job);
-  saveJobs(workingDir, jobs);
+  saveJobs(jobs);
 
-  const toolsInfo = workspaceMode === 'isolated' && (args.tools ?? []).length > 0
-    ? ` with ${(args.tools ?? []).join(', ')}`
-    : '';
+  const contextInfo = args.project_dir
+    ? `Project: ${args.project_dir}`
+    : `Workspace: ${jobWorkspacePath}`;
 
   return [
     `✅ Job "${name}" created — ${scheduleDisplay(schedule)}`,
     `ID: ${id}`,
     `Next run: ${new Date(nextRun).toUTCString()}`,
-    workspaceMode === 'isolated'
-      ? `Workspace: ${jobWorkingDir}${toolsInfo}`
-      : `Running in project context`,
+    contextInfo,
   ].join('\n');
 }
 
 export async function handleCronList(): Promise<string> {
-  const { chatId, workingDir } = getContext();
-  const jobs = loadJobs(workingDir).filter(
+  const { chatId } = getContext();
+  const jobs = loadJobs().filter(
     j => j.chat_id === chatId && j.status !== 'completed'
   );
 
@@ -99,43 +104,56 @@ export async function handleCronList(): Promise<string> {
   const lines = jobs.map(j => {
     const icon = j.status === 'active' ? '▶️' : j.status === 'paused' ? '⏸' : '❌';
     const next = new Date(j.next_run).toUTCString();
-    const ws = j.workspace_mode === 'isolated' ? ' [isolated]' : '';
-    return `${icon} [${j.id}] ${j.name}${ws} — ${scheduleDisplay(j.schedule)}\n  Next: ${next}`;
+    const ctx = j.project_dir ? ` [project: ${j.project_dir}]` : ' [isolated]';
+    return `${icon} [${j.id}] ${j.name}${ctx} — ${scheduleDisplay(j.schedule)}\n  Next: ${next}`;
   });
 
   return `Cron jobs for this chat:\n\n${lines.join('\n\n')}`;
 }
 
 export async function handleCronPause(id: string): Promise<string> {
-  const { chatId, workingDir } = getContext();
-  const jobs = loadJobs(workingDir);
+  const { chatId } = getContext();
+  const jobs = loadJobs();
   const job = jobs.find(j => j.id.startsWith(id) && j.chat_id === chatId);
   if (!job) throw new Error(`Job "${id}" not found in this chat`);
   job.status = 'paused';
   job.enabled = false;
-  saveJobs(workingDir, jobs);
+  saveJobs(jobs);
   return `⏸ Job "${job.name}" paused.`;
 }
 
 export async function handleCronResume(id: string): Promise<string> {
-  const { chatId, workingDir } = getContext();
-  const jobs = loadJobs(workingDir);
+  const { chatId } = getContext();
+  const jobs = loadJobs();
   const job = jobs.find(j => j.id.startsWith(id) && j.chat_id === chatId);
   if (!job) throw new Error(`Job "${id}" not found in this chat`);
   job.status = 'active';
   job.enabled = true;
   job.consecutive_errors = 0;
-  saveJobs(workingDir, jobs);
+  saveJobs(jobs);
   return `▶️ Job "${job.name}" resumed.`;
 }
 
 export async function handleCronRemove(id: string): Promise<string> {
-  const { chatId, workingDir } = getContext();
-  const jobs = loadJobs(workingDir);
+  const { chatId } = getContext();
+  const jobs = loadJobs();
   const idx = jobs.findIndex(j => j.id.startsWith(id) && j.chat_id === chatId);
   if (idx === -1) throw new Error(`Job "${id}" not found in this chat`);
   const name = jobs[idx].name;
   jobs.splice(idx, 1);
-  saveJobs(workingDir, jobs);
+  saveJobs(jobs);
   return `🗑 Job "${name}" deleted.`;
+}
+
+export async function handleCronRun(id: string): Promise<string> {
+  const daemonUrl = process.env.HYPED_DAEMON_URL ?? 'http://localhost:7891';
+  let res: Response;
+  try {
+    res = await fetch(`${daemonUrl}/api/cron/jobs/${id}/run`, { method: 'POST' });
+  } catch (e) {
+    throw new Error(`Daemon unreachable at ${daemonUrl}: ${e}`);
+  }
+  if (res.status === 404) throw new Error(`Job "${id}" not found`);
+  if (!res.ok) throw new Error(`Daemon returned ${res.status}`);
+  return `▶️ Job "${id}" fired immediately.`;
 }

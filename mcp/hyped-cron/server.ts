@@ -7,6 +7,7 @@ import {
   handleCronPause,
   handleCronRemove,
   handleCronResume,
+  handleCronRun,
 } from './tools.ts';
 
 const TOOLS = [
@@ -95,6 +96,15 @@ const TOOLS = [
       properties: { id: { type: 'string', description: 'Job ID (from cron_list)' } },
     },
   },
+  {
+    name: 'cron_run',
+    description: 'Immediately fire a cron job by ID (for testing). Calls the daemon directly — no scheduler delay.',
+    inputSchema: {
+      type: 'object',
+      required: ['id'],
+      properties: { id: { type: 'string', description: 'Job ID (from cron_list)' } },
+    },
+  },
 ];
 
 const server = new Server(
@@ -133,6 +143,9 @@ server.setRequestHandler(CallToolRequestSchema, async req => {
         break;
       case 'cron_remove':
         result = await handleCronRemove(a.id);
+        break;
+      case 'cron_run':
+        result = await handleCronRun(a.id);
         break;
       default:
         throw new Error(`Unknown tool: ${name}`);

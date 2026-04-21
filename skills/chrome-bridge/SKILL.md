@@ -30,9 +30,9 @@ Tools are available directly as MCP tools — no shell commands needed.
 12. record_stop()                          → returns MP4 path
 ```
 
-Then emit the video as a standalone line:
+Then emit the video using the media tag:
 ```
-MEDIA:/tmp/session.mp4
+<media>/tmp/session.mp4</media>
 ```
 
 ---
@@ -67,6 +67,6 @@ MEDIA:/tmp/session.mp4
 ---
 
 ## Notes
-- `MEDIA:` tag must be on its own line — no other text
+- Use `<media>/path/to/file</media>` to deliver files to Telegram
 - If tools return `"browser not connected"` — reload the Hyped Chrome Tool extension in `chrome://extensions`, then retry
 - The relay daemon auto-starts if not running; Chrome also launches automatically if not open
