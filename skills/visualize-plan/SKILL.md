@@ -125,27 +125,29 @@ bun run build
 
 On failure: read the error, fix it, retry (max 3 attempts).
 
-### 6. Start the dev server
-
-```bash
-lsof -i :5200 | grep LISTEN || echo "5200 is free"
-cd /tmp/plan-viewer-${FEATURE}
-bun run dev --port 5200 --host &
-sleep 2
-```
-
-### 7. Open a tunnel
+### 6. Open a tunnel
 
 Use the `local-tunnel` MCP `tunnel_open` tool to expose `http://localhost:5200`.
 
-The tunnel returns `{ url, token }` — `url` is a clean `https://<host>.ngrok-free.app` with no credentials.
+The tunnel returns `{ url, token }` — `url` is a clean `https://<host>.ngrok-free.app` with no credentials. **Save `token` — you need it for the next step.**
 
 The full URL to use everywhere:
 ```
 https://<host>.ngrok-free.app?chat_id=<TELEGRAM_CHAT_ID>&_token=<token>
 ```
 
-**Why `_token`:** Protects the `/save-feedback` and `/notify` endpoints from unauthorized POSTs. The token is generated per-tunnel and read by the browser JS to include in API request headers.
+**Why `_token` instead of ngrok Basic Auth:** ngrok `user:pass@host` URLs are blocked by Telegram in all contexts — plain text, HTML links, and inline keyboard buttons. The `_token` query param achieves equivalent security: every request (page load and API call) is validated server-side by the Vite middleware.
+
+### 7. Start the dev server
+
+```bash
+lsof -i :5200 | grep LISTEN || echo "5200 is free"
+cd /tmp/plan-viewer-${FEATURE}
+PLAN_TOKEN=<token-from-step-6> bun run dev --port 5200 --host &
+sleep 2
+```
+
+**`PLAN_TOKEN`** gates ALL requests to the dev server — the page itself and the API endpoints. Anyone without the matching token in the URL gets 401.
 
 ### 8. Screenshot and send
 
@@ -181,7 +183,10 @@ Read `review.json`, extract the user's answers, and **continue the superpowers s
 - Always `--host` with `bun run dev` — required for ngrok to reach it
 - Always `bun install --no-summary`
 - `src/plan-data.ts` is the only file to edit — touch nothing else unless layout demands it
-- Always append both `?chat_id=<ID>&_token=<token>` to the tunnel URL — omitting `_token` breaks Save on mobile
+- **Open the tunnel before starting the dev server** — you need the tunnel `token` to set `PLAN_TOKEN` env var
+- Always pass `PLAN_TOKEN=<token>` when starting the dev server — omitting it leaves the server unprotected
+- Always append both `?chat_id=<ID>&_token=<token>` to the tunnel URL — omitting `_token` blocks access (401)
+- Never use ngrok Basic Auth — Telegram blocks `user:pass@host` URLs in all contexts; `_token` middleware is the equivalent
 - The visual UI is a presentation layer — never skip the analysis steps of the underlying superpowers skill
 - Always ask visual vs traditional preference before starting (Step 0)
 
