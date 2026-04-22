@@ -92,7 +92,7 @@ export default function App() {
       ),
     }
     try {
-      const extraHeaders = authHeader ? { 'Authorization': authHeader } : {}
+      const extraHeaders: Record<string, string> = authHeader ? { 'Authorization': authHeader } : {}
       await fetch(`${apiBase}/save-feedback`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...extraHeaders },
