@@ -149,7 +149,15 @@ https://hyped:<token>@<host>.ngrok-free.app?chat_id=<TELEGRAM_CHAT_ID>&_token=<t
 
 ### 8. Screenshot and send
 
-Navigate to the URL with `chrome-tool`, take a screenshot, send screenshot + URL to the user.
+Navigate to the URL with `chrome-tool` and take a screenshot.
+
+Send the screenshot to the user, then send the URL as a **markdown link** — never as plain text:
+
+```
+[Open Plan Viewer →](https://hyped:<token>@<host>.ngrok-free.app?chat_id=<ID>&_token=<token>)
+```
+
+Use the `telegram-send-markdown` skill to send this so it renders as a tappable link in Telegram. Plain text URLs with `user:pass@host` format do not auto-linkify in Telegram.
 
 ---
 
