@@ -138,23 +138,28 @@ sleep 2
 
 Use the `local-tunnel` MCP `tunnel_open` tool to expose `http://localhost:5200`.
 
-The tunnel returns `{ url, token }` where `url` is a clean `https://<host>.ngrok-free.app` (no credentials).
+The tunnel returns `{ url, token }` — `url` is a clean `https://<host>.ngrok-free.app` with no credentials.
 
-Build the final URL:
+The full URL to use everywhere:
 ```
 https://<host>.ngrok-free.app?chat_id=<TELEGRAM_CHAT_ID>&_token=<token>
 ```
 
-**Why `_token`:** Protects the `/save-feedback` and `/notify` Vite API endpoints from unauthorized POSTs. The plan page itself is publicly accessible via the obscure ngrok URL.
+**Why `_token`:** Protects the `/save-feedback` and `/notify` endpoints from unauthorized POSTs. The token is generated per-tunnel and read by the browser JS to include in API request headers.
 
 ### 8. Screenshot and send
 
-Navigate to the URL with `chrome-tool` and take a screenshot.
+Navigate to the URL with `chrome-tool` and take a screenshot. Send the screenshot to the user.
 
-Send the screenshot to the user, then send the clean URL as plain text — Telegram auto-linkifies standard HTTPS URLs:
+Then send a **Telegram inline keyboard button** so the URL is always tappable — plain text and HTML links don't work with ngrok URLs in Telegram:
 
-```
-https://<host>.ngrok-free.app?chat_id=<ID>&_token=<token>
+```bash
+TOKEN=$(grep TELEGRAM_BOT_TOKEN ~/.hyped/.env | cut -d= -f2 | tr -d '"' | tr -d ' ')
+CHAT_ID="-5279667458"   # from system context
+URL="https://<host>.ngrok-free.app?chat_id=${CHAT_ID}&_token=<token>"
+curl -s -X POST "https://api.telegram.org/bot${TOKEN}/sendMessage" \
+  -H "Content-Type: application/json" \
+  -d "{\"chat_id\":\"${CHAT_ID}\",\"text\":\"Open the plan viewer:\",\"reply_markup\":{\"inline_keyboard\":[[{\"text\":\"Open Plan Viewer →\",\"url\":\"${URL}\"}]]}}"
 ```
 
 ---
