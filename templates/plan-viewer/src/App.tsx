@@ -63,7 +63,11 @@ export default function App() {
   const [responses, setResponses] = useState<Record<FlagKey, string>>({})
   const [saving, setSaving] = useState<'idle' | 'saving' | 'notifying' | 'done' | 'error'>('idle')
 
-  const chatId = new URLSearchParams(window.location.search).get('chat_id') ?? ''
+  const params = new URLSearchParams(window.location.search)
+  const chatId = params.get('chat_id') ?? ''
+  const token = params.get('_token')
+  const apiBase = `${window.location.protocol}//${window.location.host}`
+  const authHeader = token ? `Basic ${btoa(`hyped:${token}`)}` : undefined
   const activeTask = PLAN.tasks.find(t => t.id === active)
   const totalFlags = PLAN.tasks.reduce((n, t) => n + (t.flags?.length ?? 0), 0)
   const answeredCount = Object.values(responses).filter(v => v.trim()).length
@@ -88,16 +92,17 @@ export default function App() {
       ),
     }
     try {
-      await fetch('/save-feedback', {
+      const extraHeaders = authHeader ? { 'Authorization': authHeader } : {}
+      await fetch(`${apiBase}/save-feedback`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...extraHeaders },
         body: JSON.stringify(payload),
       })
       setSaving('notifying')
       if (chatId) {
-        await fetch('/notify', {
+        await fetch(`${apiBase}/notify`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...extraHeaders },
           body: JSON.stringify({ chat_id: chatId }),
         })
       }

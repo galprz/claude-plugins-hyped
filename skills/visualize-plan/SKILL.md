@@ -98,17 +98,24 @@ bun run dev --port 5200 --host &
 
 ### 7. Open a tunnel
 
-Use the `use-local-tunnel` skill to expose `http://localhost:5200`.
+Use the `local-tunnel` MCP `tunnel_open` tool to expose `http://localhost:5200`.
 
-Append `?chat_id=<TELEGRAM_CHAT_ID>` to the tunnel URL before sending to the user.
+The tunnel returns a URL in the form `https://hyped:<token>@<host>.ngrok-free.app`.
+
+Extract the token from the URL and build the final URL with both params:
+```
+https://hyped:<token>@<host>.ngrok-free.app?chat_id=<TELEGRAM_CHAT_ID>&_token=<token>
+```
 
 The TELEGRAM_CHAT_ID is the chat_id for the current Telegram conversation (available in your system context).
 
+**Why `_token`:** Mobile browsers block `fetch()` calls from pages loaded with `user:pass@host` URL credentials — relative URLs inherit the credentials and Chrome rejects them. The `_token` param lets the JS read the ngrok password and include it as an `Authorization` header in API calls.
+
 ### 8. Screenshot and send
 
-Use `chrome-tool` to navigate to and screenshot the tunnel URL.
+Use `chrome-tool` to navigate to and screenshot the tunnel URL (include both `?chat_id=` and `&_token=`).
 
-Send the screenshot + tunnel URL (with `?chat_id=`) to the user over Telegram.
+Send the screenshot + tunnel URL to the user over Telegram.
 
 ## Rules
 
@@ -116,7 +123,7 @@ Send the screenshot + tunnel URL (with `?chat_id=`) to the user over Telegram.
 - Always `bun install --no-summary`
 - `src/plan-data.ts` is the primary file — touch nothing else unless the plan demands it
 - Generate `suggestions` only for `question` flags where choices are genuinely clear-cut (2–3 max)
-- The `?chat_id=` param is what enables the "Save Review → notify Claude" flow
+- Always append both `?chat_id=<ID>&_token=<token>` to the tunnel URL — omitting `_token` breaks Save on mobile
 - After the user saves their review, you will receive a message in this chat to read the feedback file at `/tmp/plan-viewer-${FEATURE}/review.json`
 
 ## References
