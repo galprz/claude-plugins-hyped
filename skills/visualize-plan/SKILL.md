@@ -138,26 +138,24 @@ sleep 2
 
 Use the `local-tunnel` MCP `tunnel_open` tool to expose `http://localhost:5200`.
 
-The tunnel returns `https://hyped:<token>@<host>.ngrok-free.app`.
+The tunnel returns `{ url, token }` where `url` is a clean `https://<host>.ngrok-free.app` (no credentials).
 
 Build the final URL:
 ```
-https://hyped:<token>@<host>.ngrok-free.app?chat_id=<TELEGRAM_CHAT_ID>&_token=<token>
+https://<host>.ngrok-free.app?chat_id=<TELEGRAM_CHAT_ID>&_token=<token>
 ```
 
-**Why `_token`:** Mobile browsers block `fetch()` on pages with `user:pass@host` credentials. `_token` lets the JS include auth headers explicitly.
+**Why `_token`:** Protects the `/save-feedback` and `/notify` Vite API endpoints from unauthorized POSTs. The plan page itself is publicly accessible via the obscure ngrok URL.
 
 ### 8. Screenshot and send
 
 Navigate to the URL with `chrome-tool` and take a screenshot.
 
-Send the screenshot to the user, then send the URL as a **markdown link** — never as plain text:
+Send the screenshot to the user, then send the clean URL as plain text — Telegram auto-linkifies standard HTTPS URLs:
 
 ```
-[Open Plan Viewer →](https://hyped:<token>@<host>.ngrok-free.app?chat_id=<ID>&_token=<token>)
+https://<host>.ngrok-free.app?chat_id=<ID>&_token=<token>
 ```
-
-Use the `telegram-send-markdown` skill to send this so it renders as a tappable link in Telegram. Plain text URLs with `user:pass@host` format do not auto-linkify in Telegram.
 
 ---
 

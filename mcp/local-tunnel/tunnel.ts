@@ -22,16 +22,15 @@ export class TunnelManager {
     const listener = await ngrok.forward({
       addr: local_url,
       authtoken_from_env: true,
-      basic_auth: [`hyped:${token}`],
     })
     const rawUrl = listener.url()
     if (!rawUrl) {
       await listener.close()
       throw new Error(`ngrok.forward() returned a listener with no URL for ${local_url}`)
     }
-    const url = `https://hyped:${token}@${new URL(rawUrl).host}`
+    const url = rawUrl
     this.tunnels.set(id, { id, local_url, name: name ?? local_url, token, url, listener })
-    return { id, url, status: 'open' }
+    return { id, url, token, status: 'open' }
   }
 
   async close(id: string): Promise<{ ok: boolean }> {
