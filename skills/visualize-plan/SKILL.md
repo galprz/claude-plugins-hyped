@@ -76,6 +76,9 @@ Call `local-tts` MCP: `text_to_speech(text="<summary>")`
 
 ```bash
 cp /path/to/returned.opus /tmp/plan-viewer-${FEATURE}/public/walkthrough.opus
+# Convert to M4A for Safari/iOS compatibility (Opus alone doesn't play on iOS)
+ffmpeg -i /tmp/plan-viewer-${FEATURE}/public/walkthrough.opus \
+  -c:a aac -b:a 128k /tmp/plan-viewer-${FEATURE}/public/walkthrough.m4a -y
 ```
 
 ### 4. Populate src/plan-data.ts
@@ -157,7 +160,7 @@ Then send a **Telegram inline keyboard button** so the URL is always tappable â€
 
 ```bash
 TOKEN=$(grep TELEGRAM_BOT_TOKEN ~/.hyped/.env | cut -d= -f2 | tr -d '"' | tr -d ' ')
-CHAT_ID="-5279667458"   # from system context
+CHAT_ID="<TELEGRAM_CHAT_ID>"   # from system context (injected at runtime)
 URL="https://<host>.ngrok-free.app?chat_id=${CHAT_ID}&_token=<token>"
 curl -s -X POST "https://api.telegram.org/bot${TOKEN}/sendMessage" \
   -H "Content-Type: application/json" \

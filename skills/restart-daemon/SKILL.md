@@ -10,7 +10,7 @@ description: Use when the user asks to restart the daemon, rebuild hyped, or res
 Run `restart.sh` from the hyped project root:
 
 ```bash
-cd /Users/galperetz/projects/hyped && bash restart.sh
+cd "${HYPED_ROOT:-$HOME/projects/hyped}" && bash restart.sh
 ```
 
 This script:

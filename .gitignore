@@ -44,6 +44,9 @@ Thumbs.db
 # Git worktrees
 .worktrees/
 
+# Local MCP config — personal dev machine paths, not for committing
+.mcp.json
+
 # Temp / generated audio files
 *.wav
 *.opus
