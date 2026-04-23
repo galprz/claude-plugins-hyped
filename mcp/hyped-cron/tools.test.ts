@@ -37,15 +37,39 @@ describe('handleCronRun', () => {
     mockFetch.mockReset();
     global.fetch = mockFetch as unknown as typeof fetch;
     delete process.env.HYPED_DAEMON_URL;
+    delete process.env.HYPED_API_USER;
+    delete process.env.HYPED_API_PASSWORD;
   });
 
-  test('POSTs to default daemon URL', async () => {
+  afterEach(() => {
+    delete process.env.HYPED_API_USER;
+    delete process.env.HYPED_API_PASSWORD;
+  });
+
+  test('POSTs to default daemon URL without auth when creds not set', async () => {
     mockFetch.mockResolvedValue({ ok: true, status: 200 } as Response);
     await handleCronRun('abc123');
     expect(mockFetch).toHaveBeenCalledWith(
       'http://localhost:7891/api/cron/jobs/abc123/run',
-      { method: 'POST' }
+      { method: 'POST', headers: {} }
     );
+  });
+
+  test('sends Basic Auth header when credentials are set', async () => {
+    process.env.HYPED_API_USER = 'hyped';
+    process.env.HYPED_API_PASSWORD = 'secret';
+    mockFetch.mockResolvedValue({ ok: true, status: 200 } as Response);
+    await handleCronRun('abc123');
+    const encoded = Buffer.from('hyped:secret').toString('base64');
+    expect(mockFetch).toHaveBeenCalledWith(
+      'http://localhost:7891/api/cron/jobs/abc123/run',
+      { method: 'POST', headers: { 'Authorization': `Basic ${encoded}` } }
+    );
+  });
+
+  test('throws on 401 with helpful message', async () => {
+    mockFetch.mockResolvedValue({ ok: false, status: 401 } as Response);
+    await expect(handleCronRun('j1')).rejects.toThrow('Daemon auth failed');
   });
 
   test('uses HYPED_DAEMON_URL env var when set', async () => {
@@ -54,7 +78,7 @@ describe('handleCronRun', () => {
     await handleCronRun('xyz');
     expect(mockFetch).toHaveBeenCalledWith(
       'http://localhost:9999/api/cron/jobs/xyz/run',
-      { method: 'POST' }
+      { method: 'POST', headers: {} }
     );
   });
 

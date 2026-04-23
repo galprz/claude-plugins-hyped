@@ -145,14 +145,28 @@ export async function handleCronRemove(id: string): Promise<string> {
   return `🗑 Job "${name}" deleted.`;
 }
 
+function daemonHeaders(): HeadersInit {
+  const user = process.env.HYPED_API_USER;
+  const pass = process.env.HYPED_API_PASSWORD;
+  if (user && pass) {
+    const encoded = Buffer.from(`${user}:${pass}`).toString('base64');
+    return { 'Authorization': `Basic ${encoded}` };
+  }
+  return {};
+}
+
 export async function handleCronRun(id: string): Promise<string> {
   const daemonUrl = process.env.HYPED_DAEMON_URL ?? 'http://localhost:7891';
   let res: Response;
   try {
-    res = await fetch(`${daemonUrl}/api/cron/jobs/${id}/run`, { method: 'POST' });
+    res = await fetch(`${daemonUrl}/api/cron/jobs/${id}/run`, {
+      method: 'POST',
+      headers: daemonHeaders(),
+    });
   } catch (e) {
     throw new Error(`Daemon unreachable at ${daemonUrl}: ${e}`);
   }
+  if (res.status === 401) throw new Error(`Daemon auth failed — check HYPED_API_USER and HYPED_API_PASSWORD`);
   if (res.status === 404) throw new Error(`Job "${id}" not found`);
   if (!res.ok) throw new Error(`Daemon returned ${res.status}`);
   return `▶️ Job "${id}" fired immediately.`;
