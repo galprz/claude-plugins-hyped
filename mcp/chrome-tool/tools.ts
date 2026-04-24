@@ -1,5 +1,6 @@
 import type { BrowserClient } from './types'
 import { RecordingManager } from './recording'
+import { startHandoff } from './handoff'
 
 export interface Focusable {
   focus(): void
@@ -123,6 +124,17 @@ export const toolDefinitions = [
     name: 'focus_tab',
     description: 'Bring the browser window to the foreground and focus the session tab',
     inputSchema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'browser_handoff',
+    description: 'Hand off the current browser session to the human. Streams a live view of Chrome to the human\'s phone via Tailscale. The human can tap the screen to interact, then tap "Give AI Control" to return. Returns the handoff URL immediately — you will be notified when the human returns control.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        message: { type: 'string', description: 'Message to show the human explaining what you need them to do' },
+      },
+      required: ['message'],
+    },
   },
 ]
 
@@ -265,6 +277,12 @@ export async function executeTool(
       case 'focus_tab': {
         client.focus?.()
         return text('Browser window focused')
+      }
+
+      case 'browser_handoff': {
+        const message = args.message as string
+        const viewerUrl = await startHandoff(client, message)
+        return text(viewerUrl)
       }
 
       default:
