@@ -1,3 +1,4 @@
+import { writeFileSync } from 'fs'
 import type { BrowserClient } from './types'
 import { RecordingManager } from './recording'
 
@@ -39,8 +40,13 @@ export const toolDefinitions = [
   },
   {
     name: 'screenshot',
-    description: 'Take a screenshot of the current page',
-    inputSchema: { type: 'object', properties: {} },
+    description: 'Take a screenshot of the current page. Pass save_to to also write the JPEG to a file (e.g. /tmp/shot.jpg) so it can be sent via Telegram.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        save_to: { type: 'string', description: 'Optional file path to save the screenshot (e.g. /tmp/shot.jpg)' },
+      },
+    },
   },
   {
     name: 'eval',
@@ -163,6 +169,16 @@ export async function executeTool(
             format: 'jpeg',
             quality: 80,
           }) as { data: string }
+          const saveTo = args.save_to as string | undefined
+          if (saveTo) {
+            writeFileSync(saveTo, Buffer.from(res.data, 'base64'))
+            return {
+              content: [
+                { type: 'image' as const, data: res.data, mimeType: 'image/jpeg' },
+                { type: 'text' as const, text: `Screenshot saved to ${saveTo}` },
+              ],
+            }
+          }
           return image(res.data)
         })
       }

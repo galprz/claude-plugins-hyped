@@ -42,7 +42,7 @@ Then emit the video using the media tag:
 | Tool | Key Parameters | Returns |
 |------|---------------|---------|
 | `navigate` | `url`, `new_tab` (optional bool) | confirmation string |
-| `screenshot` | — | image (base64 JPEG, rendered inline) |
+| `screenshot` | `save_to?` (e.g. `/tmp/shot.jpg`) | image (base64 JPEG, rendered inline); if `save_to` provided, also writes JPEG to that path — use `<media>` tag to send it to Telegram |
 | `eval` | `expression` | JSON result string |
 | `click` | `x`, `y` | confirmation string |
 | `type` | `text` | confirmation string |

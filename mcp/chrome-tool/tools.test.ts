@@ -1,3 +1,4 @@
+import { existsSync, readFileSync, unlinkSync } from 'fs'
 import { executeTool } from './tools'
 
 const mockClient = {
@@ -25,6 +26,19 @@ test('screenshot returns image content', async () => {
   mockClient.sendCommand.mockResolvedValue({ data: 'base64data' })
   const result = await executeTool('screenshot', {}, mockClient as any)
   expect(result).toMatchObject({ content: [{ type: 'image', data: 'base64data' }] })
+})
+
+test('screenshot with save_to writes JPEG to file and returns image + path', async () => {
+  mockClient.sendCommand.mockResolvedValue({ data: 'base64data' })
+  const saveTo = '/tmp/chrome-tool-test-shot.jpg'
+  if (existsSync(saveTo)) unlinkSync(saveTo)
+  const result = await executeTool('screenshot', { save_to: saveTo }, mockClient as any)
+  expect(existsSync(saveTo)).toBe(true)
+  expect(readFileSync(saveTo)).toEqual(Buffer.from('base64data', 'base64'))
+  unlinkSync(saveTo)
+  expect(result.content).toHaveLength(2)
+  expect(result.content[0]).toMatchObject({ type: 'image' })
+  expect(result.content[1]).toMatchObject({ type: 'text', text: expect.stringContaining(saveTo) })
 })
 
 test('eval returns stringified result', async () => {
