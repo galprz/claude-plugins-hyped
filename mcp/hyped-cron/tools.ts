@@ -23,6 +23,7 @@ export async function handleCronCreate(args: {
   tools?: string[];
   instructions?: string;
   agents?: AgentDef[];
+  is_heartbeat?: boolean;
 }): Promise<string> {
   // Timezone enforcement — runs before any env/fs access
   if (isTimeOfDay(args.schedule) && !args.timezone) {
@@ -73,6 +74,7 @@ export async function handleCronCreate(args: {
     last_error: null,
     created_at: new Date().toISOString(),
     project_dir: args.project_dir ?? null,
+    is_heartbeat: args.is_heartbeat ?? false,
   };
 
   const jobs = loadJobs();
