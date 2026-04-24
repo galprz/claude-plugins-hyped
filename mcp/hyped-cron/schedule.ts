@@ -1,6 +1,6 @@
 import type { Schedule } from './jobs.ts';
 
-const DURATION_RE = /^(\d+)(m|h|d)$/;
+const DURATION_RE = /^(\d+)(s|m|h|d)$/;
 
 function parseDuration(s: string): number | null {
   const m = DURATION_RE.exec(s);
@@ -8,6 +8,7 @@ function parseDuration(s: string): number | null {
   const n = parseInt(m[1], 10);
   if (n === 0) return null;
   const unit = m[2];
+  if (unit === 's') return n;
   if (unit === 'm') return n * 60;
   if (unit === 'h') return n * 3600;
   if (unit === 'd') return n * 86400;
