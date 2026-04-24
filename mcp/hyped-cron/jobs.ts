@@ -19,6 +19,7 @@ export interface CronJob {
   last_error: string | null;
   created_at: string;
   project_dir: string | null;  // null = use job home dir at ~/.hyped/cron/jobs/{id}/
+  is_heartbeat: boolean;
 }
 
 export type Schedule =
@@ -32,7 +33,8 @@ function globalJobsPath(): string {
 
 export function loadJobs(): CronJob[] {
   try {
-    return JSON.parse(readFileSync(globalJobsPath(), 'utf8'));
+    const raw: CronJob[] = JSON.parse(readFileSync(globalJobsPath(), 'utf8'));
+    return raw.map(j => ({ ...j, is_heartbeat: j.is_heartbeat ?? false }));
   } catch {
     return [];
   }

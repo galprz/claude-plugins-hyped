@@ -61,6 +61,10 @@ const TOOLS = [
             },
           },
         },
+        is_heartbeat: {
+          type: 'boolean',
+          description: 'Mark as heartbeat job — shows 🫀 header in Telegram instead of ⏰ cron. Use for autonomous monitoring jobs that self-terminate via cron_remove.',
+        },
       },
     },
   },
@@ -130,6 +134,7 @@ server.setRequestHandler(CallToolRequestSchema, async req => {
           tools: a.tools,
           instructions: a.instructions,
           agents: a.agents,
+          is_heartbeat: a.is_heartbeat,
         });
         break;
       case 'cron_list':
