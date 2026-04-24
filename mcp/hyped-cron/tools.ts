@@ -77,9 +77,26 @@ export async function handleCronCreate(args: {
     is_heartbeat: args.is_heartbeat ?? false,
   };
 
-  const jobs = loadJobs();
-  jobs.push(job);
-  saveJobs(jobs);
+  // POST to daemon so it lands in the in-memory scheduler store
+  const daemonUrl = process.env.HYPED_DAEMON_URL ?? 'http://localhost:7891';
+  try {
+    const res = await fetch(`${daemonUrl}/api/cron/jobs`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(job),
+    });
+    if (!res.ok) {
+      // Daemon rejected it — fall back to direct file write so job isn't lost
+      const jobs = loadJobs();
+      jobs.push(job);
+      saveJobs(jobs);
+    }
+  } catch {
+    // Daemon unreachable — fall back to direct file write
+    const jobs = loadJobs();
+    jobs.push(job);
+    saveJobs(jobs);
+  }
 
   const contextInfo = args.project_dir
     ? `Project: ${args.project_dir}`
@@ -115,36 +132,33 @@ export async function handleCronList(): Promise<string> {
 
 export async function handleCronPause(id: string): Promise<string> {
   const { chatId } = getContext();
-  const jobs = loadJobs();
-  const job = jobs.find(j => j.id.startsWith(id) && j.chat_id === chatId);
+  // Resolve partial ID against current jobs
+  const job = loadJobs().find(j => j.id.startsWith(id) && j.chat_id === chatId);
   if (!job) throw new Error(`Job "${id}" not found in this chat`);
-  job.status = 'paused';
-  job.enabled = false;
-  saveJobs(jobs);
+  const daemonUrl = process.env.HYPED_DAEMON_URL ?? 'http://localhost:7891';
+  const res = await fetch(`${daemonUrl}/api/cron/jobs/${job.id}/pause`, { method: 'POST' });
+  if (!res.ok) throw new Error(`Daemon returned ${res.status}`);
   return `⏸ Job "${job.name}" paused.`;
 }
 
 export async function handleCronResume(id: string): Promise<string> {
   const { chatId } = getContext();
-  const jobs = loadJobs();
-  const job = jobs.find(j => j.id.startsWith(id) && j.chat_id === chatId);
+  const job = loadJobs().find(j => j.id.startsWith(id) && j.chat_id === chatId);
   if (!job) throw new Error(`Job "${id}" not found in this chat`);
-  job.status = 'active';
-  job.enabled = true;
-  job.consecutive_errors = 0;
-  saveJobs(jobs);
+  const daemonUrl = process.env.HYPED_DAEMON_URL ?? 'http://localhost:7891';
+  const res = await fetch(`${daemonUrl}/api/cron/jobs/${job.id}/resume`, { method: 'POST' });
+  if (!res.ok) throw new Error(`Daemon returned ${res.status}`);
   return `▶️ Job "${job.name}" resumed.`;
 }
 
 export async function handleCronRemove(id: string): Promise<string> {
   const { chatId } = getContext();
-  const jobs = loadJobs();
-  const idx = jobs.findIndex(j => j.id.startsWith(id) && j.chat_id === chatId);
-  if (idx === -1) throw new Error(`Job "${id}" not found in this chat`);
-  const name = jobs[idx].name;
-  jobs.splice(idx, 1);
-  saveJobs(jobs);
-  return `🗑 Job "${name}" deleted.`;
+  const job = loadJobs().find(j => j.id.startsWith(id) && j.chat_id === chatId);
+  if (!job) throw new Error(`Job "${id}" not found in this chat`);
+  const daemonUrl = process.env.HYPED_DAEMON_URL ?? 'http://localhost:7891';
+  const res = await fetch(`${daemonUrl}/api/cron/jobs/${job.id}`, { method: 'DELETE' });
+  if (!res.ok && res.status !== 404) throw new Error(`Daemon returned ${res.status}`);
+  return `🗑 Job "${job.name}" deleted.`;
 }
 
 export async function handleCronRun(id: string): Promise<string> {
