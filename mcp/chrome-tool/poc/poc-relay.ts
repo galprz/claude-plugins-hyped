@@ -100,17 +100,21 @@ async function main() {
   let frameCount = 0
   let totalBytes = 0
 
+  const MAX_SECONDS = parseInt(process.env.RELAY_DURATION ?? '60')  // default 60s for manual testing
   const secInterval = setInterval(() => {
     fpsPerSecond.push(frameCount)
     const bar = '█'.repeat(Math.min(frameCount, 20))
-    console.log(`  Second ${fpsPerSecond.length.toString().padStart(2)}: ${bar} ${frameCount} fps  (${Math.round(totalBytes/frameCount/1024)}KB/frame avg)`)
+    const viewers_count = viewers.size
+    console.log(`  Second ${fpsPerSecond.length.toString().padStart(2)}: ${bar} ${frameCount} fps  viewers=${viewers_count}`)
     frameCount = 0
     totalBytes = 0
-    if (fpsPerSecond.length >= 10) {
+    if (fpsPerSecond.length >= MAX_SECONDS) {
       clearInterval(secInterval)
       finish()
     }
   }, 1000)
+
+  process.on('SIGINT', () => { clearInterval(secInterval); finish() })
 
   const poll = async () => {
     try {
