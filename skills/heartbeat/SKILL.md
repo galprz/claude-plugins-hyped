@@ -15,7 +15,7 @@ Use this skill automatically (no user command needed) when you:
 ## How to create a heartbeat
 
 Call `cron_create` with:
-- `schedule`: interval based on urgency — `"every 2m"` for fast ops, `"every 5m"` for slower ones
+- `schedule`: interval based on urgency — `"every 5s"` for real-time, `"every 2m"` for fast ops, `"every 5m"` for slower ones. Sub-minute intervals (e.g. `"every 10s"`) are supported.
 - `inline: true` — reuses this chat session and conversation history
 - `workspace_mode: "project"` — runs in the project working directory
 - `is_heartbeat: true` — shows 🫀 header instead of ⏰ cron
@@ -61,8 +61,9 @@ A heartbeat that does not call `cron_remove` will run forever. There is no other
 
 | Operation | Interval |
 |-----------|----------|
-| Fast deploy / CI run | every 2m |
-| Docker build / npm install | every 3m |
+| Real-time monitoring / fast heartbeat | every 5s |
+| Fast deploy / CI run | every 30s |
+| Docker build / npm install | every 2m |
 | DB migration / slow deploy | every 5m |
 | Long-running batch job | every 10m |
 
