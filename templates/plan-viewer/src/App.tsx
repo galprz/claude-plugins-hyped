@@ -65,7 +65,9 @@ export default function App() {
 
   const params = new URLSearchParams(window.location.search)
   const chatId = params.get('chat_id') ?? ''
-  const token = params.get('_token')
+  const threadId = params.get('thread_id') ? Number(params.get('thread_id')) : null
+  // Support both ?_token=X (legacy) and https://hyped:X@host (Basic Auth URL)
+  const token = params.get('_token') || new URL(window.location.href).password || null
   const apiBase = `${window.location.protocol}//${window.location.host}`
   const authHeader = token ? `Basic ${btoa(`hyped:${token}`)}` : undefined
   const activeTask = PLAN.tasks.find(t => t.id === active)
@@ -103,7 +105,7 @@ export default function App() {
         await fetch(`${apiBase}/notify`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', ...extraHeaders },
-          body: JSON.stringify({ chat_id: chatId }),
+          body: JSON.stringify({ chat_id: chatId, thread_id: threadId }),
         })
       }
       setSaving('done')

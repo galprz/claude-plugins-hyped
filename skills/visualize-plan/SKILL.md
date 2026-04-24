@@ -130,16 +130,14 @@ On failure: read the error, fix it, retry (max 3 attempts).
 
 ### 6. Open a tunnel
 
-Use the `local-tunnel` MCP `tunnel_open` tool to expose `http://localhost:5200`.
+Follow the **`use-local-tunnel` skill** to expose `http://localhost:5200`. The tunnel returns `{ id, url, status }` where `url` is `https://hyped:<token>@<host>.ngrok-free.app`.
 
-The tunnel returns `{ url, token }` — `url` is a clean `https://<host>.ngrok-free.app` with no credentials. **Save `token` — you need it for the next step.**
+Save the `id` (to close later) and extract `<token>` from the URL — you need it for `PLAN_TOKEN` in the next step.
 
-The full URL to use everywhere:
+Append `?chat_id=<TELEGRAM_CHAT_ID>&thread_id=<TELEGRAM_THREAD_ID>&_token=<token>` to the tunnel URL — double security (Basic Auth in URL + token in query param). `thread_id` is required so Telegram responses go back to the correct forum topic:
 ```
-https://<host>.ngrok-free.app?chat_id=<TELEGRAM_CHAT_ID>&_token=<token>
+https://hyped:<token>@<host>.ngrok-free.app?chat_id=<TELEGRAM_CHAT_ID>&thread_id=<TELEGRAM_THREAD_ID>&_token=<token>
 ```
-
-**Why `_token` instead of ngrok Basic Auth:** ngrok `user:pass@host` URLs are blocked by Telegram in all contexts — plain text, HTML links, and inline keyboard buttons. The `_token` query param achieves equivalent security: every request (page load and API call) is validated server-side by the Vite middleware.
 
 ### 7. Start the dev server
 
@@ -154,18 +152,9 @@ sleep 2
 
 ### 8. Screenshot and send
 
-Navigate to the URL with `chrome-tool` and take a screenshot. Send the screenshot to the user.
+Navigate to `http://localhost:5200?_token=<token>` with `chrome-tool` (not the ngrok URL — ngrok shows a browser warning page that blocks the screenshot) and take a screenshot.
 
-Then send a **Telegram inline keyboard button** so the URL is always tappable — plain text and HTML links don't work with ngrok URLs in Telegram:
-
-```bash
-TOKEN=$(grep TELEGRAM_BOT_TOKEN ~/.hyped/.env | cut -d= -f2 | tr -d '"' | tr -d ' ')
-CHAT_ID="<TELEGRAM_CHAT_ID>"   # from system context (injected at runtime)
-URL="https://<host>.ngrok-free.app?chat_id=${CHAT_ID}&_token=<token>"
-curl -s -X POST "https://api.telegram.org/bot${TOKEN}/sendMessage" \
-  -H "Content-Type: application/json" \
-  -d "{\"chat_id\":\"${CHAT_ID}\",\"text\":\"Open the plan viewer:\",\"reply_markup\":{\"inline_keyboard\":[[{\"text\":\"Open Plan Viewer →\",\"url\":\"${URL}\"}]]}}"
-```
+Then send the tunnel URL as a **separate plain text message** following the `use-local-tunnel` skill's sending rules — raw URL only, no markdown, no buttons. Append `?chat_id=<TELEGRAM_CHAT_ID>` to the URL before sending.
 
 ---
 
@@ -186,10 +175,11 @@ Read `review.json`, extract the user's answers, and **continue the superpowers s
 - Always `--host` with `bun run dev` — required for ngrok to reach it
 - Always `bun install --no-summary`
 - `src/plan-data.ts` is the only file to edit — touch nothing else unless layout demands it
-- **Open the tunnel before starting the dev server** — you need the tunnel `token` to set `PLAN_TOKEN` env var
+- **Open the tunnel before starting the dev server** — you need the token to set `PLAN_TOKEN` env var
 - Always pass `PLAN_TOKEN=<token>` when starting the dev server — omitting it leaves the server unprotected
-- Always append both `?chat_id=<ID>&_token=<token>` to the tunnel URL — omitting `_token` blocks access (401)
-- Never use ngrok Basic Auth — Telegram blocks `user:pass@host` URLs in all contexts; `_token` middleware is the equivalent
+- Follow the `use-local-tunnel` skill for all tunnel open/send/close steps
+- Always append `?chat_id=<TELEGRAM_CHAT_ID>&_token=<token>` to the tunnel URL — Basic Auth in URL + `_token` param for double security
+- Screenshot from `http://localhost:5200?_token=<token>` not the ngrok URL — ngrok shows a warning page in the browser
 - The visual UI is a presentation layer — never skip the analysis steps of the underlying superpowers skill
 - Always ask visual vs traditional preference before starting (Step 0)
 
@@ -197,5 +187,6 @@ Read `review.json`, extract the user's answers, and **continue the superpowers s
 
 - `superpowers:brainstorming` — drives content for Mode A
 - `superpowers:writing-plans` — drives content for Mode B/C
+- `use-local-tunnel` skill — canonical tunnel open/send/close instructions
 - `local-ui` skill — Vite + React + Tailwind v4 stack reference
 - `local-tts` MCP — `text_to_speech(text)` → absolute path to `.opus` file

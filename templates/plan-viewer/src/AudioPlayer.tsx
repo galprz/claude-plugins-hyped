@@ -2,12 +2,25 @@ import { useState, useRef } from 'react'
 
 export function AudioPlayer() {
   const [playing, setPlaying] = useState(false)
+  const [error, setError] = useState(false)
   const ref = useRef<HTMLAudioElement>(null)
 
-  const toggle = () => {
+  const toggle = async () => {
     if (!ref.current) return
-    playing ? ref.current.pause() : ref.current.play()
-    setPlaying(!playing)
+    if (playing) {
+      ref.current.pause()
+      setPlaying(false)
+    } else {
+      try {
+        setError(false)
+        await ref.current.play()
+        setPlaying(true)
+      } catch (e) {
+        console.error('Audio play failed:', e)
+        setError(true)
+        setPlaying(false)
+      }
+    }
   }
 
   return (
@@ -23,9 +36,14 @@ export function AudioPlayer() {
       </button>
       <div className="flex-1 min-w-0">
         <div className="text-xs font-medium text-indigo-300">Before you approve</div>
-        <div className="text-xs text-indigo-400/60 truncate">Key risks · open questions · ambiguities</div>
+        <div className="text-xs text-indigo-400/60 truncate">
+          {error ? '⚠ Could not load audio' : 'Key risks · open questions · ambiguities'}
+        </div>
       </div>
-      <audio ref={ref} src="/walkthrough.opus" onEnded={() => setPlaying(false)} />
+      <audio ref={ref} onEnded={() => setPlaying(false)}>
+        <source src="/walkthrough.m4a" type="audio/mp4" />
+        <source src="/walkthrough.opus" type="audio/ogg; codecs=opus" />
+      </audio>
     </div>
   )
 }

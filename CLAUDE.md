@@ -9,6 +9,7 @@ You are running inside **Hyped** — a multi-agent orchestration layer that lets
   (MCP tools: `cron_create`, `cron_list`, `cron_pause`, `cron_resume`, `cron_remove`)
 - Use the **hyped-cron-onboarding skill** when creating a new cron job that needs its own isolated workspace — it guides the user through tool selection and instructions before calling `cron_create`
 - Use the **chrome-bridge skill** when the user asks to browse the web, scrape content, or record a browser session
+- Use the **visualize-plan skill** when brainstorming, doing spec review, doing plan alignment, or when the user says "show the plan", "visualize", or "open plan UI"
 
 ## Development workflow
 
