@@ -18,15 +18,18 @@ git, files), or should it run independently in its own clean workspace?"
 
 ## Step 2 — Determine tools
 
-Ask: "Does it need to browse the web or take screenshots?" → `"incognito-browser"` (default). Only use `"user-browser"` if the job needs to log in or use the user's existing session cookies.
+Ask: "Does it need to browse the web or take screenshots?"
+- **Yes, public page (no login needed)** → `"incognito-browser"` — headless, clean session, no cookies
+- **Yes, requires login or user's existing cookies/session** → `"user-browser"` — uses real Chrome with user's auth
+
 Ask: "Should results be delivered as audio?" → `"local-tts"`
-No to both → empty tools list (Claude's built-in tools only)
+No browser, no audio → empty tools list (Claude's built-in tools only)
 
 Available tools:
 | Tool | What it enables |
 |------|----------------|
-| `incognito-browser` | Browse web, screenshot, scrape, record — **default for all browser tasks** |
-| `user-browser` | Browse web with user's real Chrome + cookies — only when auth is required |
+| `incognito-browser` | Browse public pages, screenshot, scrape, record — **use by default** |
+| `user-browser` | Browse with user's real Chrome session + cookies — **only when auth is required** |
 | `local-tts` | Generate speech from text |
 
 ## Step 3 — Gather standing instructions
