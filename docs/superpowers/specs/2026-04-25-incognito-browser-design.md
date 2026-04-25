@@ -8,6 +8,14 @@ Add a headless Playwright-backed browser MCP (`incognito-browser`) as the defaul
 
 Use `@playwright/mcp`'s `createConnection(config, contextGetter)` as the foundation — it provides all standard tools (navigate, click, type, scroll, eval, screenshot) via its `core` + `vision` capabilities. A thin wrapper in `index.ts` adds `record_start` and `record_stop` by injecting a custom `contextGetter` that creates a Playwright `BrowserContext` with `recordVideo` enabled when recording is active. `recorder.ts` manages the context lifecycle and WebM→MP4 conversion via ffmpeg.
 
+## KISS Constraints
+
+- No edge case handling — if ffmpeg isn't installed, let it crash with a clear error
+- No retry logic, no timeout wrappers, no graceful degradation
+- No multi-page / multi-context management — one browser, one page at a time
+- record_start/stop is fire-and-forget — no progress tracking, no partial video recovery
+- If the MCP SDK doesn't support appending handlers, use the simplest proxy that works — no abstraction layers
+
 ## Requirements
 
 | # | Requirement |
@@ -19,7 +27,7 @@ Use `@playwright/mcp`'s `createConnection(config, contextGetter)` as the foundat
 | R5 | `record_stop()` — closes the recording context (flushes WebM), converts to MP4 via ffmpeg, returns MP4 path |
 | R6 | Headless by default; `INCOGNITO_HEADLESS=false` env var makes browser visible |
 | R7 | `chrome-tool` MCP server renamed to `user-browser` in `.mcp.json` and all skill/CLAUDE.md references |
-| R8 | `skills/incognito-browser/SKILL.md` with clear when-to-use rule |
+| R8 | `skills/incognito-browser/SKILL.md` — documents full orchestration: when to use, step-by-step workflows for screenshot, scraping, and recording, tool call sequences, and how to deliver output to Telegram |
 | R9 | CLAUDE.md updated with both MCPs and the decision rule |
 | OUT | Tab management tools (`get_tabs`, `switch_tab`, `focus_tab`) — not needed for headless |
 | OUT | Persistent browser profiles — incognito always starts fresh |
@@ -79,3 +87,40 @@ Tool descriptions in `incognito-browser` end with:
 
 Tool descriptions in `user-browser` end with:
 > *"Uses the user's real browser session with existing cookies. Use incognito-browser for public pages."*
+
+## Skill Orchestration (content for `skills/incognito-browser/SKILL.md`)
+
+The skill must document three concrete workflows with exact tool call sequences:
+
+**Workflow 1 — Screenshot and send to Telegram**
+```
+1. navigate({ url })
+2. screenshot({ save_to: "/tmp/shot.jpg" })
+3. <media>/tmp/shot.jpg</media>
+```
+
+**Workflow 2 — Scrape page content**
+```
+1. navigate({ url })
+2. eval({ expression: "document.body.innerText" })  → extract data
+   or eval({ expression: "..." })                   → structured extraction
+```
+
+**Workflow 3 — Record a session and send video**
+```
+1. record_start({ output_path: "/tmp/session.mp4" })
+2. navigate({ url })
+3. click / type / scroll as needed
+4. record_stop()  → returns MP4 path
+5. <media>/tmp/session.mp4</media>
+```
+
+The skill must also include the decision table:
+```
+Use incognito-browser (default)    Use user-browser instead
+───────────────────────────────    ────────────────────────
+Public pages                       Page requires login
+Scraping / screenshots             Need existing cookies
+Recording demos                    Interacting with user's open tabs
+Autonomous background tasks        Session state matters
+```
