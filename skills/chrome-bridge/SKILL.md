@@ -1,12 +1,13 @@
 ---
-name: chrome-bridge
-description: Use when browsing the web, scraping content, or recording a browser session to send via Telegram.
+name: user-browser
+description: Use when the page requires authentication or you need the user's existing cookies/session. Use incognito-browser for public pages.
 ---
 
-# chrome-bridge
+# user-browser
 
 ## Overview
-Controls your real running Chrome via a Chrome extension + relay daemon.
+Controls your real running Chrome with the user's existing session and cookies.
+Use incognito-browser for public pages that don't require authentication.
 Tools are available directly as MCP tools — no shell commands needed.
 
 **Prerequisite:** Chrome must be open with the Hyped Chrome Tool extension loaded from `tools/chrome-tool/extension/dist/`. The relay daemon auto-starts when any tool is called.
