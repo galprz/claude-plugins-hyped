@@ -60,6 +60,14 @@ function handleExtension(ws: WebSocket): void {
       if (session) {
         sendClient(session.clientSocket, { type: 'event', method: msg.method, params: msg.params })
       }
+      return
+    }
+
+    if (msg.type === 'handoff_complete') {
+      const session = sessions.get(msg.session_id)
+      if (session) {
+        sendClient(session.clientSocket, { type: 'event', method: 'Extension.handoffComplete', params: {} })
+      }
     }
   })
 
@@ -112,6 +120,11 @@ function handleClient(ws: WebSocket): void {
           params: msg.params,
         })
       }
+      return
+    }
+
+    if (msg.type === 'handoff_start') {
+      sendExt({ type: 'handoff_start', session_id: msg.session_id, signaling_url: msg.signaling_url, token: msg.token })
       return
     }
 
