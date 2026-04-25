@@ -18,14 +18,15 @@ git, files), or should it run independently in its own clean workspace?"
 
 ## Step 2 — Determine tools
 
-Ask: "Does it need to browse the web or take screenshots?" → `"chrome-tool"`
+Ask: "Does it need to browse the web or take screenshots?" → `"incognito-browser"` (default). Only use `"user-browser"` if the job needs to log in or use the user's existing session cookies.
 Ask: "Should results be delivered as audio?" → `"local-tts"`
 No to both → empty tools list (Claude's built-in tools only)
 
 Available tools:
 | Tool | What it enables |
 |------|----------------|
-| `chrome-tool` | Browse web, screenshot, click, scrape |
+| `incognito-browser` | Browse web, screenshot, scrape, record — **default for all browser tasks** |
+| `user-browser` | Browse web with user's real Chrome + cookies — only when auth is required |
 | `local-tts` | Generate speech from text |
 
 ## Step 3 — Gather standing instructions
@@ -56,7 +57,7 @@ cron_create({
   name:           "<short display name>",
   timezone:       "<IANA timezone if user said local time>",
   workspace_mode: "isolated",
-  tools:          ["chrome-tool"],   // or [] if none
+  tools:          ["incognito-browser"],   // or ["user-browser"] if auth needed, or [] if none
   instructions:   "Focus on AI...",  // or ""
   agents: [                          // optional
     { name: "researcher", instructions: "You are a research specialist..." }
@@ -125,11 +126,11 @@ You are a research specialist...
 ```json
 {
   "mcpServers": {
-    "chrome-tool": {
+    "incognito-browser": {
       "command": "bun",
-      "args": ["run", "--cwd", "/absolute/path/to/mcp/chrome-tool", "--silent", "start"],
-      "env": { "CHROME_TOOL_PORT": "9222" }
+      "args": ["run", "--cwd", "/absolute/path/to/mcp/incognito-browser", "--silent", "start"]
     }
+    // use "user-browser" instead only if the job requires auth/cookies
   }
 }
 ```

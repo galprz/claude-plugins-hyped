@@ -2,6 +2,13 @@
 
 You are running inside **Hyped** — a multi-agent orchestration layer for coordinating Claude Code agents via Telegram.
 
+## Browser Decision Rule
+
+**Default: use `incognito-browser`** for all web tasks (scraping, screenshots, recording, public pages).  
+**Exception: use `user-browser`** only when the page requires login or the user's existing cookies/session.
+
+---
+
 ## Skills
 
 ### `hyped-projects`
@@ -45,7 +52,7 @@ Manage jobs: `cron_list`, `cron_pause`, `cron_resume`, `cron_remove`.
 **When:** User says "show the plan", "visualize", or "open plan UI"; or during brainstorm / spec review / plan alignment.  
 **How:**
 1. Always ask first: visual UI or traditional text flow?
-2. Visual → copy `~/.hyped/plugins/claude-plugins-hyped/templates/plan-viewer` to `/tmp/plan-viewer-<feature>`, populate `src/plan-data.ts` with tasks + flags (risk/question/ambiguity), `bun run build`, open tunnel with `use-local-tunnel`, start dev server with `PLAN_TOKEN=<token> bun run dev --port 5200 --host`, screenshot and send inline keyboard button.
+2. Visual → copy `~/.hyped/plugins/claude-plugins-hyped/templates/plan-viewer` to `/tmp/plan-viewer-<feature>`, populate `src/plan-data.ts` with tasks + flags (risk/question/ambiguity), `bun run build`, open tunnel with `use-local-tunnel`, start dev server with `PLAN_TOKEN=<token> bun run dev --port 5200 --host`, screenshot with `incognito-browser` and send.
 3. After user saves → read `review.json` and continue the superpowers skill flow (spec → plan → implementation).
 
 Modes: **Brainstorm** (design questions as flags), **Spec review** (spec sections + open decisions), **Plan alignment** (tasks + risks).

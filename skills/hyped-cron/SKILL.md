@@ -44,7 +44,7 @@ description: Use when the user asks to schedule a recurring task, set a reminder
 | `timezone` | **Required for time-of-day schedules.** IANA format e.g. `"America/New_York"` |
 | `workspace_mode` | `"project"` or `"isolated"` |
 | `inline` | `true` or `false` (default) — see Step 2 |
-| `tools` | `["chrome-tool"]`, `["local-tts"]`, or `[]` — isolated only |
+| `tools` | `["incognito-browser"]` (default for web tasks), `["user-browser"]` (only if auth needed), `["local-tts"]`, or `[]` — isolated only |
 | `instructions` | Standing instructions — isolated only |
 | `agents` | Sub-agents array `[{name, instructions}]` — isolated only |
 
