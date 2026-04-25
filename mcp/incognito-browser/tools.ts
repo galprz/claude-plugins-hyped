@@ -141,15 +141,15 @@ export async function executeTool(
 
       case 'scroll': {
         const page = await session.getPage()
-        await page.mouse.move(args.x as number, args.y as number)
-        await page.mouse.wheel(0, args.deltaY as number)
-        return text(`Scrolled ${args.deltaY}px at (${args.x}, ${args.y})`)
+        const deltaY = Number(args.deltaY)
+        await page.evaluate((dy: number) => window.scrollBy(0, dy), deltaY)
+        return text(`Scrolled ${deltaY}px`)
       }
 
       case 'eval': {
         const page = await session.getPage()
         const result = await page.evaluate(args.expression as string)
-        return text(JSON.stringify(result))
+        return text(result === undefined ? 'undefined' : JSON.stringify(result))
       }
 
       case 'record_start': {
