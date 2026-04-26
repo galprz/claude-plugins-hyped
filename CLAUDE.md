@@ -65,11 +65,15 @@ Modes: **Brainstorm** (design questions as flags), **Spec review** (spec section
 **When:** Adding shadcn/ui components to a React project.  
 **How:** `bunx shadcn@latest add <component>`. Components are copied into `src/components/ui/` and imported from `@/components/ui/<name>`. Never copy component code manually.
 
+### `set-workspace`
+**When:** **MANDATORY** — trigger automatically whenever the user begins brainstorming a new feature/task OR approves a plan for implementation. This must happen **before writing any files** — no docs, plans, specs, code, or any other file until the workspace is set up or the user declines. Do not skip this.  
+**How:** Ask the user once: "Want me to set up a workspace for this?" If yes, derive a short kebab-case name from the task and call `workspace_set(name, chat_id)`. All subsequent work happens in the returned worktree path. If no, proceed without — but never ask again for the same session.
+
 ---
 
 ## Development Workflow
 
-- New feature branch → `superpowers:using-git-worktrees`
+- New feature branch → `set-workspace` skill (mandatory) → `superpowers:using-git-worktrees`
 - Implementing a plan task by task → `superpowers:executing-plans`
 - TDD → `superpowers:test-driven-development`
 - After finishing `superpowers:writing-plans` → always offer to do a plan alignment review using the `visualize-plan` skill
