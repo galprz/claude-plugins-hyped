@@ -8,9 +8,9 @@ export interface AgentDef {
 }
 
 const MCP_CONFIGS: Record<string, (pluginRoot: string) => object> = {
-  'chrome-tool': (pluginRoot) => ({
+  'user-browser': (pluginRoot) => ({
     command: 'bun',
-    args: ['run', '--cwd', join(pluginRoot, 'mcp', 'chrome-tool'), '--silent', 'start'],
+    args: ['run', '--cwd', join(pluginRoot, 'mcp', 'user-browser'), '--silent', 'start'],
     env: { CHROME_TOOL_PORT: '9222' },
   }),
   'local-tts': (pluginRoot) => ({

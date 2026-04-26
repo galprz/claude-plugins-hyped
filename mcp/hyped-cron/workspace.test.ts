@@ -54,19 +54,19 @@ describe('createIsolatedWorkspace', () => {
 
   test('mcp.json only contains requested tools', async () => {
     const path = await createIsolatedWorkspace(
-      'id4', 'J', 'every 1h', ['chrome-tool'], '', tmpPluginRoot
+      'id4', 'J', 'every 1h', ['user-browser'], '', tmpPluginRoot
     );
     const mcp = JSON.parse(readFileSync(join(path, '.mcp.json'), 'utf8'));
-    expect(Object.keys(mcp.mcpServers)).toEqual(['chrome-tool']);
+    expect(Object.keys(mcp.mcpServers)).toEqual(['user-browser']);
     expect(mcp.mcpServers['local-tts']).toBeUndefined();
   });
 
   test('mcp.json uses absolute plugin root paths', async () => {
     const path = await createIsolatedWorkspace(
-      'id5', 'J', 'every 1h', ['chrome-tool'], '', tmpPluginRoot
+      'id5', 'J', 'every 1h', ['user-browser'], '', tmpPluginRoot
     );
     const mcp = JSON.parse(readFileSync(join(path, '.mcp.json'), 'utf8'));
-    const args = mcp.mcpServers['chrome-tool'].args as string[];
+    const args = mcp.mcpServers['user-browser'].args as string[];
     expect(args.some((a: string) => a.includes(tmpPluginRoot))).toBe(true);
     // No ${CLAUDE_PLUGIN_ROOT} variable — must be resolved absolute path
     expect(JSON.stringify(mcp)).not.toContain('${CLAUDE_PLUGIN_ROOT}');

@@ -10,7 +10,7 @@ Controls your real running Chrome with the user's existing session and cookies.
 Use incognito-browser for public pages that don't require authentication.
 Tools are available directly as MCP tools — no shell commands needed.
 
-**Prerequisite:** The Hyped Chrome extension must be loaded from `tools/chrome-tool/extension/dist/`. The relay daemon auto-starts when any tool is called.
+**Prerequisite:** The Hyped Chrome extension must be loaded from `mcp/user-browser/extension/dist/`. The relay daemon auto-starts when any tool is called.
 
 ---
 

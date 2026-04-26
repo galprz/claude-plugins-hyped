@@ -2,7 +2,7 @@
 
 ## Goal
 
-Add a headless Playwright-backed browser MCP (`incognito-browser`) as the default browser tool, alongside the existing user-session-based `user-browser` (formerly `chrome-tool`).
+Add a headless Playwright-backed browser MCP (`incognito-browser`) as the default browser tool, alongside the existing user-session-based `user-browser` (formerly `user-browser`).
 
 ## Architecture
 
@@ -26,7 +26,7 @@ Use `@playwright/mcp`'s `createConnection(config, contextGetter)` as the foundat
 | R4 | `record_start({ output_path })` — closes any existing context, creates a fresh Playwright context with `recordVideo` enabled. **Browser state is reset** — navigate after calling `record_start`, not before |
 | R5 | `record_stop()` — closes the recording context (flushes WebM), converts to MP4 via ffmpeg, returns MP4 path |
 | R6 | Headless by default; `INCOGNITO_HEADLESS=false` env var makes browser visible |
-| R7 | `chrome-tool` MCP server renamed to `user-browser` in `.mcp.json` and all skill/CLAUDE.md references |
+| R7 | `user-browser` MCP server renamed to `user-browser` in `.mcp.json` and all skill/CLAUDE.md references |
 | R8 | `skills/incognito-browser/SKILL.md` — documents full orchestration: when to use, step-by-step workflows for screenshot, scraping, and recording, tool call sequences, and how to deliver output to Telegram |
 | R9 | CLAUDE.md updated with both MCPs and the decision rule |
 | OUT | Tab management tools (`get_tabs`, `switch_tab`, `focus_tab`) — not needed for headless |
@@ -51,9 +51,9 @@ Use `@playwright/mcp`'s `createConnection(config, contextGetter)` as the foundat
 | `mcp/incognito-browser/recorder.ts` | create | manages recording context lifecycle + WebM→MP4 via ffmpeg |
 | `mcp/incognito-browser/index.test.ts` | create | integration tests for navigate, screenshot, record |
 | `skills/incognito-browser/SKILL.md` | create | when/how to use the MCP |
-| `skills/chrome-bridge/SKILL.md` | rename/update | rename to `skills/user-browser/SKILL.md`, update descriptions |
-| `CLAUDE.md` | update | add `incognito-browser`, rename `chrome-bridge` → `user-browser`, add decision rule |
-| `.mcp.json` | update | add `incognito-browser` server, rename `chrome-tool` → `user-browser` |
+| `skills/user-browser/SKILL.md` | rename/update | rename to `skills/user-browser/SKILL.md`, update descriptions |
+| `CLAUDE.md` | update | add `incognito-browser`, rename `user-browser` → `user-browser`, add decision rule |
+| `.mcp.json` | update | add `incognito-browser` server, rename `user-browser` → `user-browser` |
 
 ## Tasks
 
@@ -69,7 +69,7 @@ Use `@playwright/mcp`'s `createConnection(config, contextGetter)` as the foundat
 - Verify GREEN
 
 ### Task 3 — Rename + docs
-- Rename `skills/chrome-bridge/` → `skills/user-browser/`, update all descriptions with "use when you need the user's existing cookies or session"
+- Rename `skills/user-browser/` → `skills/user-browser/`, update all descriptions with "use when you need the user's existing cookies or session"
 - Create `skills/incognito-browser/SKILL.md`
 - Update `CLAUDE.md` and `.mcp.json`
 - Full suite check

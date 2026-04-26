@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add an `incognito-browser` MCP — a headless Playwright-backed browser that is the default for all browser tasks, with `user-browser` (renamed from `chrome-tool`) used only when existing auth/cookies are required.
+**Goal:** Add an `incognito-browser` MCP — a headless Playwright-backed browser that is the default for all browser tasks, with `user-browser` (renamed from `user-browser`) used only when existing auth/cookies are required.
 
-**Architecture:** Own MCP server built directly with `playwright` and `@modelcontextprotocol/sdk` (same pattern as `chrome-tool`). A single `session.ts` manages the browser/page lifecycle and recording state. `tools.ts` defines and executes the 9 tools. `index.ts` wires the MCP server.
+**Architecture:** Own MCP server built directly with `playwright` and `@modelcontextprotocol/sdk` (same pattern as `user-browser`). A single `session.ts` manages the browser/page lifecycle and recording state. `tools.ts` defines and executes the 9 tools. `index.ts` wires the MCP server.
 
 **Tech Stack:** Bun, TypeScript, Playwright, `@modelcontextprotocol/sdk`
 
@@ -20,9 +20,9 @@
 | `mcp/incognito-browser/index.ts` | create | MCP server entry point |
 | `mcp/incognito-browser/index.test.ts` | create | integration tests |
 | `skills/incognito-browser/SKILL.md` | create | LLM orchestration guide |
-| `skills/chrome-bridge/SKILL.md` | update | rename skill to `user-browser`, update descriptions |
-| `CLAUDE.md` | update | add `incognito-browser`, rename chrome-bridge → user-browser, add decision rule |
-| `.mcp.json` | update | add incognito-browser server, rename chrome-tool → user-browser |
+| `skills/user-browser/SKILL.md` | update | rename skill to `user-browser`, update descriptions |
+| `CLAUDE.md` | update | add `incognito-browser`, rename user-browser → user-browser, add decision rule |
+| `.mcp.json` | update | add incognito-browser server, rename user-browser → user-browser |
 
 ---
 
@@ -528,7 +528,7 @@ git commit -m "feat(incognito-browser): add MCP server entry point"
 
 **Files:**
 - Create: `skills/incognito-browser/SKILL.md`
-- Modify: `skills/chrome-bridge/SKILL.md` (update skill name + descriptions)
+- Modify: `skills/user-browser/SKILL.md` (update skill name + descriptions)
 - Modify: `CLAUDE.md`
 - Modify: `.mcp.json`
 
@@ -594,9 +594,9 @@ description: Use for all browser tasks by default — scraping, screenshots, rec
 | `record_stop` | — | returns MP4 path |
 ```
 
-- [ ] **Step 2: Update `skills/chrome-bridge/SKILL.md` — change skill name and add decision note**
+- [ ] **Step 2: Update `skills/user-browser/SKILL.md` — change skill name and add decision note**
 
-At the top of `skills/chrome-bridge/SKILL.md`, update the frontmatter:
+At the top of `skills/user-browser/SKILL.md`, update the frontmatter:
 
 ```markdown
 ---
@@ -615,7 +615,7 @@ Use incognito-browser for public pages that don't require authentication.
 
 - [ ] **Step 3: Update `CLAUDE.md`**
 
-Replace the existing `chrome-bridge` entry with:
+Replace the existing `user-browser` entry with:
 
 ```markdown
 ### `user-browser`
@@ -644,7 +644,7 @@ Add after `user-browser`:
     },
     "user-browser": {
       "command": "bun",
-      "args": ["run", "--cwd", "${CLAUDE_PLUGIN_ROOT}/mcp/chrome-tool", "--silent", "start"],
+      "args": ["run", "--cwd", "${CLAUDE_PLUGIN_ROOT}/mcp/user-browser", "--silent", "start"],
       "env": {
         "CHROME_TOOL_PORT": "9222"
       }
@@ -676,6 +676,6 @@ Expected: all tests pass.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add skills/incognito-browser/ skills/chrome-bridge/SKILL.md CLAUDE.md .mcp.json
-git commit -m "feat(incognito-browser): wire MCP, update skills, rename chrome-bridge to user-browser"
+git add skills/incognito-browser/ skills/user-browser/SKILL.md CLAUDE.md .mcp.json
+git commit -m "feat(incognito-browser): wire MCP, update skills, rename user-browser to user-browser"
 ```

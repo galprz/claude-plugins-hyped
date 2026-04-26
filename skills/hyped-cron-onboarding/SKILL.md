@@ -18,14 +18,14 @@ git, files), or should it run independently in its own clean workspace?"
 
 ## Step 2 — Determine tools
 
-Ask: "Does it need to browse the web or take screenshots?" → `"chrome-tool"`
+Ask: "Does it need to browse the web or take screenshots?" → `"user-browser"`
 Ask: "Should results be delivered as audio?" → `"local-tts"`
 No to both → empty tools list (Claude's built-in tools only)
 
 Available tools:
 | Tool | What it enables |
 |------|----------------|
-| `chrome-tool` | Browse web, screenshot, click, scrape |
+| `user-browser` | Browse web, screenshot, click, scrape |
 | `local-tts` | Generate speech from text |
 
 ## Step 3 — Gather standing instructions
@@ -56,7 +56,7 @@ cron_create({
   name:           "<short display name>",
   timezone:       "<IANA timezone if user said local time>",
   workspace_mode: "isolated",
-  tools:          ["chrome-tool"],   // or [] if none
+  tools:          ["user-browser"],   // or [] if none
   instructions:   "Focus on AI...",  // or ""
   agents: [                          // optional
     { name: "researcher", instructions: "You are a research specialist..." }
@@ -125,9 +125,9 @@ You are a research specialist...
 ```json
 {
   "mcpServers": {
-    "chrome-tool": {
+    "user-browser": {
       "command": "bun",
-      "args": ["run", "--cwd", "/absolute/path/to/mcp/chrome-tool", "--silent", "start"],
+      "args": ["run", "--cwd", "/absolute/path/to/mcp/user-browser", "--silent", "start"],
       "env": { "CHROME_TOOL_PORT": "9222" }
     }
   }

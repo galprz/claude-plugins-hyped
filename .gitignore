@@ -19,7 +19,7 @@ bun.lockb
 *.tsbuildinfo
 
 # Built JS artifacts (we ship source, not dist)
-mcp/chrome-tool/dist/
+mcp/user-browser/dist/
 mcp/local-tts/dist/
 
 # ML model cache — models are downloaded at runtime via mlx-audio / huggingface

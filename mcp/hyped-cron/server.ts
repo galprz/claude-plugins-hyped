@@ -43,7 +43,7 @@ const TOOLS = [
         tools: {
           type: 'array',
           items: { type: 'string' },
-          description: 'MCP tools for isolated workspace: "chrome-tool" (browse web), "local-tts" (audio). Only relevant for isolated mode.',
+          description: 'MCP tools for isolated workspace: "user-browser" (browse web), "local-tts" (audio). Only relevant for isolated mode.',
         },
         instructions: {
           type: 'string',

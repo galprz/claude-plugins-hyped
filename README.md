@@ -29,7 +29,7 @@ Skills are loaded automatically by Claude Code via the plugin directory. They ac
 | `hyped-projects` | Register, list, and switch between projects |
 | `local-ui` | Scaffold a local Vite + React + Tailwind v4 UI |
 | `use-local-tunnel` | Open an ngrok tunnel via the local-tunnel MCP |
-| `chrome-bridge` | Control Chrome via CDP for screenshots and automation |
+| `user-browser` | Control Chrome via CDP for screenshots and automation |
 | `shadcn` | Add shadcn/ui components |
 | `tailwind-v4-shadcn` | Tailwind v4 + shadcn setup reference |
 
@@ -41,7 +41,7 @@ Skills are loaded automatically by Claude Code via the plugin directory. They ac
 |--------|-------------|
 | `local-tts` | Text-to-speech using Orpheus 3B (local, Apple Silicon) — returns `.opus` file path |
 | `local-tunnel` | Open/close/list ngrok tunnels — returns `{ url, token }` |
-| `chrome-tool` | Chrome DevTools Protocol bridge for browser automation |
+| `user-browser` | Chrome DevTools Protocol bridge for browser automation |
 
 ---
 

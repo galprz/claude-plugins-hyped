@@ -152,7 +152,7 @@ sleep 2
 
 ### 8. Screenshot and send
 
-Navigate to `http://localhost:5200?_token=<token>` with `chrome-tool` (not the ngrok URL — ngrok shows a browser warning page that blocks the screenshot) and take a screenshot.
+Navigate to `http://localhost:5200?_token=<token>` with `user-browser` (not the ngrok URL — ngrok shows a browser warning page that blocks the screenshot) and take a screenshot.
 
 Then send the tunnel URL as a **separate plain text message** following the `use-local-tunnel` skill's sending rules — raw URL only, no markdown, no buttons. Append `?chat_id=<TELEGRAM_CHAT_ID>` to the URL before sending.
 
