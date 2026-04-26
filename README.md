@@ -40,7 +40,7 @@ Skills are loaded automatically by Claude Code via the plugin directory. They ac
 | Server | Description |
 |--------|-------------|
 | `local-tts` | Text-to-speech using Orpheus 3B (local, Apple Silicon) — returns `.opus` file path |
-| `local-tunnel` | Open/close/list ngrok tunnels — returns `{ url, token }` |
+| `local-tunnel` | Open/close/list ngrok tunnels — returns `{ id, url, status }`. Auth credentials set via `NGROK_TUNNEL_USERNAME` / `NGROK_TUNNEL_PASSWORD` env vars. |
 | `user-browser` | Chrome DevTools Protocol bridge for browser automation |
 
 ---
@@ -69,6 +69,18 @@ description: Use when the user asks to do X
 ## Templates
 
 - `templates/plan-viewer/` — Vite + React UI for plan/brainstorm review. Protected by `PLAN_TOKEN` env var. Copy to `/tmp/plan-viewer-<feature>` and run with `PLAN_TOKEN=<token> bun run dev --port 5200 --host`.
+
+---
+
+## Environment Variables
+
+Add these to `~/.hyped/.env` — the daemon injects them into every Claude Code session.
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `NGROK_AUTHTOKEN` | Yes | Your ngrok auth token from [dashboard.ngrok.com](https://dashboard.ngrok.com/get-started/your-authtoken) |
+| `NGROK_TUNNEL_PASSWORD` | Yes | Basic auth password for all ngrok tunnels |
+| `NGROK_TUNNEL_USERNAME` | No | Basic auth username (default: `hyped`) |
 
 ---
 
