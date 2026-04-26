@@ -142,6 +142,20 @@ export class DaemonClient implements BrowserClient {
     })
   }
 
+  async closeAll(): Promise<void> {
+    return new Promise<void>((resolve) => {
+      const onMessage = (raw: import('ws').RawData) => {
+        const msg = JSON.parse(raw.toString()) as DaemonToClient
+        if (msg.type === 'all_closed' || msg.type === 'error') {
+          this.ws.off('message', onMessage)
+          resolve()
+        }
+      }
+      this.ws.on('message', onMessage)
+      this.ws.send(JSON.stringify({ type: 'close_all' } satisfies ClientToDaemon))
+    })
+  }
+
   async listProfiles(): Promise<ChromeProfile[]> {
     return new Promise<ChromeProfile[]>((resolve) => {
       const onMessage = (raw: import('ws').RawData) => {

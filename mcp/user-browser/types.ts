@@ -6,6 +6,7 @@ export type ClientToDaemon =
   | { type: 'leave';        session_id: string }
   | { type: 'open_browser'; profile?: string }
   | { type: 'close_browser' }
+  | { type: 'close_all' }
   | { type: 'list_profiles' }
 
 // Messages: daemon → MCP client
@@ -16,6 +17,7 @@ export type DaemonToClient =
   | { type: 'error';          message: string }
   | { type: 'browser_opened' }
   | { type: 'browser_closed' }
+  | { type: 'all_closed' }
   | { type: 'profiles';       profiles: import('./profiles').ChromeProfile[] }
 
 // Messages: extension → daemon

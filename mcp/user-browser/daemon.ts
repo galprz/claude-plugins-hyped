@@ -171,6 +171,20 @@ function handleClient(ws: WebSocket): void {
       return
     }
 
+    if (msg.type === 'close_all') {
+      try {
+        execSync('osascript -e \'tell application "Google Chrome" to quit\'', { timeout: 3000 })
+      } catch { /* not running */ }
+      try { execSync('killall "Google Chrome" 2>/dev/null', { timeout: 3000 }) } catch { /* already dead */ }
+      extensionSocket = null
+      for (const session of sessions.all()) {
+        sessions.remove(session.sessionId)
+      }
+      windowIdsBefore = new Set()
+      sendClient(ws, { type: 'all_closed' })
+      return
+    }
+
     if (msg.type === 'close_browser') {
       // Close only the windows we opened (new IDs since launch)
       const currentIds = getChromeWindowIds()

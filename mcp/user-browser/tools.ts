@@ -9,6 +9,7 @@ export interface Focusable {
 export interface BrowserLifecycle {
   openBrowser(profile?: string): Promise<void>
   closeBrowser(): Promise<void>
+  closeAll(): Promise<void>
   listProfiles(): Promise<import('./profiles').ChromeProfile[]>
 }
 
@@ -159,6 +160,11 @@ export const toolDefinitions = [
     description: 'Close the browser tabs opened by this session. Does not quit Chrome itself.',
     inputSchema: { type: 'object', properties: {} },
   },
+  {
+    name: 'close_all',
+    description: 'Quit Chrome entirely — closes all windows and profiles.',
+    inputSchema: { type: 'object', properties: {} },
+  },
 ]
 
 export async function executeTool(
@@ -260,8 +266,28 @@ export async function executeTool(
       case 'scroll': {
         return await timeout(5000, async () => {
           const { x, y, deltaY } = args as { x: number; y: number; deltaY: number }
-          await client.sendCommand('Input.dispatchMouseEvent', {
-            type: 'mouseWheel', x, y, deltaX: 0, deltaY,
+          await client.sendCommand('Runtime.evaluate', {
+            expression: `
+              (function() {
+                // Try window first, then find the tallest scrollable container
+                if (document.scrollingElement && document.scrollingElement.scrollHeight > window.innerHeight) {
+                  document.scrollingElement.scrollBy({ top: ${deltaY}, behavior: 'smooth' });
+                  return 'window';
+                }
+                const all = document.querySelectorAll('*');
+                let best = null, bestH = 0;
+                for (const el of all) {
+                  const s = getComputedStyle(el);
+                  if ((s.overflow === 'auto' || s.overflow === 'scroll' || s.overflowY === 'auto' || s.overflowY === 'scroll') && el.scrollHeight > el.clientHeight && el.clientHeight > bestH) {
+                    best = el; bestH = el.clientHeight;
+                  }
+                }
+                if (best) { best.scrollBy({ top: ${deltaY}, behavior: 'smooth' }); return best.tagName; }
+                window.scrollBy({ top: ${deltaY}, behavior: 'smooth' });
+                return 'window-fallback';
+              })()
+            `,
+            returnByValue: true,
           })
           return text(`Scrolled ${deltaY}px at (${x}, ${y})`)
         })
@@ -335,6 +361,12 @@ export async function executeTool(
         if (!client.closeBrowser) return text('close_browser not available')
         await client.closeBrowser()
         return text('Chrome closed')
+      }
+
+      case 'close_all': {
+        if (!client.closeAll) return text('close_all not available')
+        await client.closeAll()
+        return text('All Chrome windows closed')
       }
 
       default:
