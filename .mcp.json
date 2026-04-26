@@ -2,22 +2,55 @@
   "mcpServers": {
     "hyped-cron": {
       "command": "bun",
-      "args": ["run", "--cwd", "${CLAUDE_PLUGIN_ROOT}/mcp/hyped-cron", "--silent", "start"]
+      "args": [
+        "run",
+        "--cwd",
+        "${CLAUDE_PLUGIN_ROOT}/mcp/hyped-cron",
+        "--silent",
+        "start"
+      ]
     },
-    "chrome-tool": {
+    "local-tts": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--project",
+        "${CLAUDE_PLUGIN_ROOT}/mcp/local-tts",
+        "local-tts-mcp"
+      ]
+    },
+    "local-tunnel": {
       "command": "bun",
-      "args": ["run", "--cwd", "${CLAUDE_PLUGIN_ROOT}/mcp/chrome-tool", "--silent", "start"],
+      "args": [
+        "run",
+        "--cwd",
+        "${CLAUDE_PLUGIN_ROOT}/mcp/local-tunnel",
+        "--silent",
+        "start"
+      ]
+    },
+    "user-browser": {
+      "command": "bun",
+      "args": [
+        "run",
+        "--cwd",
+        "${CLAUDE_PLUGIN_ROOT}/mcp/chrome-tool",
+        "--silent",
+        "start"
+      ],
       "env": {
         "CHROME_TOOL_PORT": "9222"
       }
     },
-    "local-tts": {
-      "command": "uv",
-      "args": ["run", "--project", "${CLAUDE_PLUGIN_ROOT}/mcp/local-tts", "local-tts-mcp"]
-    },
-    "local-tunnel": {
+    "incognito-browser": {
       "command": "bun",
-      "args": ["run", "--cwd", "${CLAUDE_PLUGIN_ROOT}/mcp/local-tunnel", "--silent", "start"]
+      "args": [
+        "run",
+        "--cwd",
+        "${CLAUDE_PLUGIN_ROOT}/mcp/incognito-browser",
+        "--silent",
+        "start"
+      ]
     }
   }
 }
