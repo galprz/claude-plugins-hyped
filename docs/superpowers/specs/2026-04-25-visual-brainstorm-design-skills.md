@@ -16,14 +16,16 @@ Extend the existing `plan-viewer` template (React + Vite + Tailwind v4) with two
 |---|-------------|
 | R1 | `plan-viewer` template supports a `blocks` array on `PlanTask` containing `DiagramBlock` or `WireframeBlock` items |
 | R2 | `DiagramBlock` renders Mermaid syntax to SVG in-browser (no server); supports `architecture`, `sequence`, `flowchart` |
-| R3 | `WireframeBlock` shows 2–3 alternatives side-by-side; user picks one via toggle button; choice is persisted in save payload |
-| R4 | Wireframe alternatives render as sandboxed HTML/CSS in iframes |
-| R5 | Save payload includes both `flags` responses (existing) and `wireframes` picks (new) |
-| R6 | `brainstorm-visual` skill triggers mid-brainstorm for visual questions only; not for conceptual/tradeoff questions |
-| R7 | `design-visual` skill triggers after spec is approved, before `writing-plans`, for full technical design sign-off |
-| R8 | Each skill includes a `resources/` directory with Mermaid templates, wireframe component snippets, and one complete `plan-data.ts` example |
-| R9 | Skill descriptions in the plugin prompt clearly differentiate when to use `brainstorm-visual` vs `design-visual` vs `visualize-plan` |
-| R10 | Out of scope: real-time collaboration, pixel-perfect mockups, diagram editing in browser |
+| R3 | Invalid Mermaid syntax causes a hard error (visible error state in UI); Claude is responsible for correct syntax |
+| R4 | `WireframeBlock` shows 2–3 alternatives side-by-side; user picks one via toggle button; choice is persisted in save payload |
+| R5 | Wireframe alternatives render as sandboxed HTML/CSS in iframes |
+| R6 | Save payload includes both `flags` responses (existing) and `wireframes` picks (new) |
+| R7 | `brainstorm-visual` skill triggers mid-brainstorm for visual questions only; not for conceptual/tradeoff questions |
+| R8 | `design-visual` skill triggers after spec is approved, before `writing-plans`; required for UI features, optional for pure backend (skill decides based on feature type) |
+| R9 | Each skill has its own `resources/` directory — no sharing between skills |
+| R10 | Skills read all resources upfront before populating `plan-data.ts` |
+| R11 | Skill descriptions in the plugin prompt clearly differentiate `brainstorm-visual` vs `design-visual` vs `visualize-plan`; `visualize-plan` explicitly states it is NOT for design diagrams |
+| R12 | Out of scope: real-time collaboration, pixel-perfect mockups, diagram editing in browser |
 
 ## Definition of Done
 
@@ -108,11 +110,13 @@ brainstorm-visual  — mid-brainstorm, visual questions only
                      NOT for: conceptual tradeoffs, scope decisions, text Q&A
 
 design-visual      — after spec approved, before writing-plans
+                     required for UI features; optional for pure backend (skill decides)
                      full technical design review: architecture + sequence + UI
                      NOT for: mid-brainstorm exploration
 
 visualize-plan     — after implementation plan written, before coding starts
                      task-by-task alignment with flags for risks/questions
+                     NOT for: design diagrams or wireframes — use design-visual instead
 ```
 
 ### Resources Directory Purpose
