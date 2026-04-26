@@ -28,29 +28,6 @@
         "--silent",
         "start"
       ]
-    },
-    "user-browser": {
-      "command": "bun",
-      "args": [
-        "run",
-        "--cwd",
-        "${CLAUDE_PLUGIN_ROOT}/mcp/user-browser",
-        "--silent",
-        "start"
-      ],
-      "env": {
-        "CHROME_TOOL_PORT": "9222"
-      }
-    },
-    "incognito-browser": {
-      "command": "bun",
-      "args": [
-        "run",
-        "--cwd",
-        "${CLAUDE_PLUGIN_ROOT}/mcp/incognito-browser",
-        "--silent",
-        "start"
-      ]
     }
   }
 }
