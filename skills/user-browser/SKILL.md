@@ -10,29 +10,35 @@ Controls your real running Chrome with the user's existing session and cookies.
 Use incognito-browser for public pages that don't require authentication.
 Tools are available directly as MCP tools — no shell commands needed.
 
-**Prerequisite:** Chrome must be open with the Hyped Chrome Tool extension loaded from `tools/chrome-tool/extension/dist/`. The relay daemon auto-starts when any tool is called.
+**Prerequisite:** The Hyped Chrome extension must be loaded from `tools/chrome-tool/extension/dist/`. The relay daemon auto-starts when any tool is called.
 
 ---
 
 ## Full Workflow
 
 ```
-1. navigate({ url: "https://example.com", new_tab: true })  → opens in new tab
-2. get_tabs()                                                → find tab IDs
-3. switch_tab({ tabId: "123" })                             → attach debugger + focus
-4. record_start({ output_path: "/tmp/session.mp4" })
-5. screenshot()                           → Read the returned image to see the page
-6. scroll({ x: 640, y: 400, deltaY: 500 })
-7. click({ x: 640, y: 400 })             → interact
-8. type({ text: "search query" })
-9. key({ key: "Enter" })
-10. eval({ expression: "document.title" }) → extract data
-11. focus_tab()                            → bring Chrome window to front
-12. record_stop()                          → returns MP4 path
+1. list_profiles()                          → get available profiles
+   - If only "Default" exists: skip asking, go to step 3 with no profile arg
+   - Otherwise: show user the list and ask which profile to use
+2. [User picks a profile]
+3. open_browser({ profile: "Work" })        → launches Chrome with that profile
+   OR open_browser()                        → launches with Default profile
+4. navigate({ url: "https://example.com", new_tab: true })  → opens in new tab
+5. get_tabs()                               → find tab IDs
+6. switch_tab({ tabId: "123" })             → attach debugger + focus
+7. screenshot()                             → Read the returned image to see the page
+8. scroll / click / type / key / eval ...   → interact with the page
+9. focus_tab()                              → bring Chrome window to front
+10. close_browser()                         → kills that Chrome instance
 ```
 
-Then emit the video using the media tag:
+> If `open_browser` returns a "Profile not found" error, call `list_profiles()` again to show current options and ask the user to pick one.
+
+For recording, wrap steps 4–9 with:
 ```
+record_start({ output_path: "/tmp/session.mp4" })
+... interact ...
+record_stop()   → returns MP4 path
 <media>/tmp/session.mp4</media>
 ```
 
@@ -42,6 +48,9 @@ Then emit the video using the media tag:
 
 | Tool | Key Parameters | Returns |
 |------|---------------|---------|
+| `list_profiles` | — | Text list of `{name, directory}` for all Chrome profiles |
+| `open_browser` | `profile?` (display name or dir, e.g. `"Work"`) | Launches Chrome; kills existing instance first if open |
+| `close_browser` | — | Kills the Chrome instance launched by `open_browser` |
 | `navigate` | `url`, `new_tab` (optional bool) | confirmation string |
 | `screenshot` | `save_to?` (e.g. `/tmp/shot.jpg`) | image (base64 JPEG, rendered inline); if `save_to` provided, also writes JPEG to that path — use `<media>` tag to send it to Telegram |
 | `eval` | `expression` | JSON result string |
@@ -65,9 +74,11 @@ Then emit the video using the media tag:
 
 **`navigate` without `new_tab`** navigates within the current session tab. Use this when you want to stay in one tab.
 
+**`open_browser` called twice** kills the existing Chrome instance before launching the new one — no dangling processes.
+
 ---
 
 ## Notes
 - Use `<media>/path/to/file</media>` to deliver files to Telegram
-- If tools return `"browser not connected"` — reload the Hyped Chrome Tool extension in `chrome://extensions`, then retry
-- The relay daemon auto-starts if not running; Chrome also launches automatically if not open
+- If tools return `"browser not connected"` — call `open_browser()` to launch Chrome, then retry
+- The relay daemon auto-starts if not running

@@ -3,6 +3,7 @@ import { createServer } from 'http'
 import { resolve } from 'path'
 import { SessionRegistry } from './sessions'
 import { launchChrome } from './chrome'
+import { listChromeProfiles, resolveProfileDir } from './profiles'
 import type { ClientToDaemon, DaemonToClient, ExtToDaemon, DaemonToExt } from './types'
 
 const PORT = parseInt(process.env.CHROME_TOOL_PORT ?? '9222')
@@ -11,6 +12,16 @@ const EXTENSION_PATH = process.env.CHROME_TOOL_EXT ??
 
 const sessions = new SessionRegistry()
 let extensionSocket: WebSocket | null = null
+let launchedChromePid: number | null = null
+
+async function killChrome(pid: number): Promise<void> {
+  try { process.kill(pid, 'SIGTERM') } catch { return } // already dead
+  for (let i = 0; i < 3; i++) {
+    await new Promise<void>(r => setTimeout(r, 1000))
+    try { process.kill(pid, 0) } catch { return } // dead
+  }
+  try { process.kill(pid, 'SIGKILL') } catch { /* ignore */ }
+}
 
 function sendExt(msg: DaemonToExt): void {
   if (extensionSocket?.readyState === WebSocket.OPEN) {
@@ -75,7 +86,7 @@ function handleExtension(ws: WebSocket): void {
 function handleClient(ws: WebSocket): void {
   let sessionId: string | null = null
 
-  ws.on('message', (raw) => {
+  ws.on('message', async (raw) => {
     const msg = JSON.parse(raw.toString()) as ClientToDaemon
 
     if (msg.type === 'join') {
@@ -84,8 +95,65 @@ function handleClient(ws: WebSocket): void {
       if (extensionSocket?.readyState === WebSocket.OPEN) {
         sendExt({ type: 'open_tab', session_id: sessionId })
       } else {
-        sendClient(ws, { type: 'error', message: 'Browser not connected' })
+        // Fallback: auto-launch with Default profile if Chrome isn't open yet
+        console.error('[daemon] no extension on join — auto-launching Default profile')
+        try {
+          const proc = launchChrome(EXTENSION_PATH, 'Default')
+          if (proc.pid) launchedChromePid = proc.pid
+        } catch (e) {
+          sendClient(ws, { type: 'error', message: `Chrome launch failed: ${(e as Error).message}` })
+        }
       }
+      return
+    }
+
+    if (msg.type === 'list_profiles') {
+      const profiles = listChromeProfiles()
+      sendClient(ws, { type: 'profiles', profiles })
+      return
+    }
+
+    if (msg.type === 'open_browser') {
+      const profiles = listChromeProfiles()
+      let profileDir = 'Default'
+
+      if (msg.profile) {
+        const resolved = resolveProfileDir(msg.profile, profiles)
+        if (!resolved) {
+          const names = profiles.map(p => `"${p.name}" (${p.directory})`).join(', ')
+          sendClient(ws, {
+            type: 'error',
+            message: `Profile "${msg.profile}" not found. Available profiles: ${names}`,
+          })
+          return
+        }
+        profileDir = resolved
+      }
+
+      // Kill existing Chrome first if already open
+      if (launchedChromePid !== null) {
+        await killChrome(launchedChromePid)
+        launchedChromePid = null
+      }
+
+      try {
+        const proc = launchChrome(EXTENSION_PATH, profileDir)
+        if (proc.pid) launchedChromePid = proc.pid
+        sendClient(ws, { type: 'browser_opened' })
+      } catch (e) {
+        sendClient(ws, { type: 'error', message: `Chrome launch failed: ${(e as Error).message}` })
+      }
+      return
+    }
+
+    if (msg.type === 'close_browser') {
+      if (launchedChromePid === null) {
+        sendClient(ws, { type: 'browser_closed' })
+        return
+      }
+      await killChrome(launchedChromePid)
+      launchedChromePid = null
+      sendClient(ws, { type: 'browser_closed' })
       return
     }
 
@@ -139,16 +207,6 @@ wss.on('connection', (ws, req) => {
   else if (path === '/client') handleClient(ws)
   else ws.close(1008, 'Unknown path')
 })
-
-// Launch Chrome if extension doesn't connect within 3s
-setTimeout(() => {
-  if (!extensionSocket) {
-    console.error('[daemon] no extension — launching Chrome')
-    try { launchChrome(EXTENSION_PATH) } catch (e) {
-      console.error('[daemon] Chrome launch failed:', e)
-    }
-  }
-}, 3000)
 
 server.listen(PORT, '127.0.0.1', () => {
   console.error(`[daemon] ws://127.0.0.1:${PORT}`)
