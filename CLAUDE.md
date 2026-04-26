@@ -21,17 +21,15 @@ Manage jobs: `cron_list`, `cron_pause`, `cron_resume`, `cron_remove`.
 
 ### `hyped-cron-onboarding`
 **When:** Creating a cron job that runs independently (no project context).  
-**How:** Walks through tool selection (incognito-browser for web/screenshots, local-tts for audio output), standing instructions, and optional sub-agents — then calls `cron_create` with `workspace_mode: "isolated"`.
+**How:** Walks through tool selection (agent-browser for web/screenshots, local-tts for audio output), standing instructions, and optional sub-agents — then calls `cron_create` with `workspace_mode: "isolated"`.
 
-### `user-browser`
-**When:** The page requires login or you need the user's existing cookies/session.  
-**Use `incognito-browser` instead** for any public page or task that doesn't need authentication.  
-**How:** Controls real Chrome via MCP tools (CDP relay). Core tools: `navigate`, `screenshot`, `click`, `type`, `eval`, `record_start` / `record_stop`.
+### `agent-browser`
+**When:** Any browser task — authenticated pages, scraping, screenshots, recording, public pages.  
+**How:** Uses the `agent-browser` CLI directly via shell. Two modes:
+- **Hyped profile** (authenticated): launch Chrome with `--user-data-dir=~/.hyped-browser --remote-debugging-port=9223`, then `agent-browser connect 9223`. If cookies aren't set up yet, run `bash ~/hyped-browser/key-manager/run.sh` first.
+- **Headless** (clean): just run `agent-browser open <url>` directly — no setup needed.
 
-### `incognito-browser`
-**When:** Default for all browser tasks — scraping, screenshots, recording, any public page.  
-**Switch to `user-browser`** only when the page requires authentication or existing cookies.  
-**How:** Headless Playwright browser. Same core tools as user-browser. `record_start` resets browser state — navigate after calling it, not before.
+Read the full skill for onboarding flow, key rules, and command reference.
 
 ### `heartbeat`
 **When:** Automatically — whenever you start a deployment, build, migration, or any long-running process. No user command needed.  
