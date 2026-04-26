@@ -4,6 +4,7 @@ import { spawn } from 'child_process'
 import { resolve } from 'path'
 import { randomUUID } from 'crypto'
 import type { ClientToDaemon, DaemonToClient, BrowserClient } from './types'
+import type { ChromeProfile } from './profiles'
 
 const PORT = parseInt(process.env.CHROME_TOOL_PORT ?? '9222')
 const DAEMON_PATH = resolve(__dirname, 'daemon.js')
@@ -108,5 +109,50 @@ export class DaemonClient implements BrowserClient {
       const updated = (this.eventListeners.get(method) ?? []).filter(h => h !== handler)
       this.eventListeners.set(method, updated)
     }
+  }
+
+  async openBrowser(profile?: string): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      const onMessage = (raw: import('ws').RawData) => {
+        const msg = JSON.parse(raw.toString()) as DaemonToClient
+        if (msg.type === 'browser_opened') {
+          this.ws.off('message', onMessage)
+          resolve()
+        } else if (msg.type === 'error') {
+          this.ws.off('message', onMessage)
+          reject(new Error(msg.message))
+        }
+      }
+      this.ws.on('message', onMessage)
+      this.ws.send(JSON.stringify({ type: 'open_browser', profile } satisfies ClientToDaemon))
+    })
+  }
+
+  async closeBrowser(): Promise<void> {
+    return new Promise<void>((resolve) => {
+      const onMessage = (raw: import('ws').RawData) => {
+        const msg = JSON.parse(raw.toString()) as DaemonToClient
+        if (msg.type === 'browser_closed' || msg.type === 'error') {
+          this.ws.off('message', onMessage)
+          resolve()
+        }
+      }
+      this.ws.on('message', onMessage)
+      this.ws.send(JSON.stringify({ type: 'close_browser' } satisfies ClientToDaemon))
+    })
+  }
+
+  async listProfiles(): Promise<ChromeProfile[]> {
+    return new Promise<ChromeProfile[]>((resolve) => {
+      const onMessage = (raw: import('ws').RawData) => {
+        const msg = JSON.parse(raw.toString()) as DaemonToClient
+        if (msg.type === 'profiles') {
+          this.ws.off('message', onMessage)
+          resolve(msg.profiles)
+        }
+      }
+      this.ws.on('message', onMessage)
+      this.ws.send(JSON.stringify({ type: 'list_profiles' } satisfies ClientToDaemon))
+    })
   }
 }
