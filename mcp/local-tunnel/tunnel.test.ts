@@ -57,9 +57,15 @@ describe('TunnelManager.open', () => {
     await expect(new TunnelManager().open('http://localhost:3000')).rejects.toThrow('NGROK_AUTHTOKEN')
   })
 
-  test('throws when NGROK_TUNNEL_PASSWORD is not set', async () => {
+  test('auto-generates and uses password when NGROK_TUNNEL_PASSWORD is not set', async () => {
     delete process.env.NGROK_TUNNEL_PASSWORD
-    await expect(new TunnelManager().open('http://localhost:3000')).rejects.toThrow('NGROK_TUNNEL_PASSWORD')
+    const m = new TunnelManager()
+    const r = await m.open('http://localhost:3000')
+    expect(r.status).toBe('open')
+    // URL should contain auto-generated password (not empty)
+    expect(r.url).toMatch(/^https:\/\/testuser:[^@]+@abc123\.ngrok\.io$/)
+    // Password is persisted on process.env for subsequent calls
+    expect(process.env.NGROK_TUNNEL_PASSWORD).toBeTruthy()
   })
 
   test('throws and closes listener when url() returns null', async () => {
