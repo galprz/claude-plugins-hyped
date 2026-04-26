@@ -18,26 +18,36 @@ describe('TunnelManager.open', () => {
     mockClose.mockClear()
     process.env.NGROK_AUTHTOKEN = 'test-token'
     process.env.NGROK_TUNNEL_USERNAME = 'testuser'
-    process.env.NGROK_TUNNEL_PASSWORD = 'testpass'
   })
   afterEach(() => {
     delete process.env.NGROK_AUTHTOKEN
     delete process.env.NGROK_TUNNEL_USERNAME
-    delete process.env.NGROK_TUNNEL_PASSWORD
   })
 
-  test('embeds configured username and password in URL', async () => {
+  test('returns id, url with basic auth embedded, status open', async () => {
     const m = new TunnelManager()
     const r = await m.open('http://localhost:3000')
     expect(r.status).toBe('open')
-    expect(r.url).toBe('https://testuser:testpass@abc123.ngrok.io')
+    expect(r.id).toBeTruthy()
+    expect(r.url).toMatch(/^https:\/\/testuser:[^@]+@abc123\.ngrok\.io$/)
+  })
+
+  test('generates a unique random password per tunnel', async () => {
+    const m = new TunnelManager()
+    const r1 = await m.open('http://localhost:3000')
+    const r2 = await m.open('http://localhost:4000')
+    const pass1 = r1.url.match(/testuser:([^@]+)@/)?.[1]
+    const pass2 = r2.url.match(/testuser:([^@]+)@/)?.[1]
+    expect(pass1).toBeTruthy()
+    expect(pass2).toBeTruthy()
+    expect(pass1).not.toBe(pass2)
   })
 
   test('defaults username to "hyped" when NGROK_TUNNEL_USERNAME is not set', async () => {
     delete process.env.NGROK_TUNNEL_USERNAME
     const m = new TunnelManager()
     const r = await m.open('http://localhost:3000')
-    expect(r.url).toBe('https://hyped:testpass@abc123.ngrok.io')
+    expect(r.url).toMatch(/^https:\/\/hyped:[^@]+@abc123\.ngrok\.io$/)
   })
 
   test('passes name through to list()', async () => {
@@ -55,11 +65,6 @@ describe('TunnelManager.open', () => {
   test('throws when NGROK_AUTHTOKEN is not set', async () => {
     delete process.env.NGROK_AUTHTOKEN
     await expect(new TunnelManager().open('http://localhost:3000')).rejects.toThrow('NGROK_AUTHTOKEN')
-  })
-
-  test('throws when NGROK_TUNNEL_PASSWORD is not set', async () => {
-    delete process.env.NGROK_TUNNEL_PASSWORD
-    await expect(new TunnelManager().open('http://localhost:3000')).rejects.toThrow('NGROK_TUNNEL_PASSWORD')
   })
 
   test('throws and closes listener when url() returns null', async () => {
@@ -80,14 +85,8 @@ describe('TunnelManager.close', () => {
     )
     mockClose.mockClear()
     process.env.NGROK_AUTHTOKEN = 'test-token'
-    process.env.NGROK_TUNNEL_USERNAME = 'testuser'
-    process.env.NGROK_TUNNEL_PASSWORD = 'testpass'
   })
-  afterEach(() => {
-    delete process.env.NGROK_AUTHTOKEN
-    delete process.env.NGROK_TUNNEL_USERNAME
-    delete process.env.NGROK_TUNNEL_PASSWORD
-  })
+  afterEach(() => { delete process.env.NGROK_AUTHTOKEN })
 
   test('calls listener.close and removes tunnel', async () => {
     const m = new TunnelManager()
@@ -110,14 +109,8 @@ describe('TunnelManager.list', () => {
       Promise.resolve({ url: () => 'https://abc123.ngrok.io', close: mockClose })
     )
     process.env.NGROK_AUTHTOKEN = 'test-token'
-    process.env.NGROK_TUNNEL_USERNAME = 'testuser'
-    process.env.NGROK_TUNNEL_PASSWORD = 'testpass'
   })
-  afterEach(() => {
-    delete process.env.NGROK_AUTHTOKEN
-    delete process.env.NGROK_TUNNEL_USERNAME
-    delete process.env.NGROK_TUNNEL_PASSWORD
-  })
+  afterEach(() => { delete process.env.NGROK_AUTHTOKEN })
 
   test('returns all open tunnels', async () => {
     const m = new TunnelManager()
@@ -142,14 +135,8 @@ describe('TunnelManager.status', () => {
       Promise.resolve({ url: () => 'https://abc123.ngrok.io', close: mockClose })
     )
     process.env.NGROK_AUTHTOKEN = 'test-token'
-    process.env.NGROK_TUNNEL_USERNAME = 'testuser'
-    process.env.NGROK_TUNNEL_PASSWORD = 'testpass'
   })
-  afterEach(() => {
-    delete process.env.NGROK_AUTHTOKEN
-    delete process.env.NGROK_TUNNEL_USERNAME
-    delete process.env.NGROK_TUNNEL_PASSWORD
-  })
+  afterEach(() => { delete process.env.NGROK_AUTHTOKEN })
 
   test('returns tunnel state with embedded credentials', async () => {
     const m = new TunnelManager()
@@ -158,7 +145,7 @@ describe('TunnelManager.status', () => {
     expect(s.id).toBe(id)
     expect(s.port).toBe('http://localhost:3000')
     expect(s.status).toBe('open')
-    expect(s.url).toBe('https://testuser:testpass@abc123.ngrok.io')
+    expect(s.url).toMatch(/^https:\/\/hyped:[^@]+@abc123\.ngrok\.io$/)
   })
 
   test('throws for unknown id', () => {

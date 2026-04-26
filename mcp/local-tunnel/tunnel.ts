@@ -16,11 +16,8 @@ export class TunnelManager {
     if (!process.env.NGROK_AUTHTOKEN) {
       throw new Error('NGROK_AUTHTOKEN is not set. Add it to ~/.hyped/.env and restart the daemon.')
     }
-    if (!process.env.NGROK_TUNNEL_PASSWORD) {
-      throw new Error('NGROK_TUNNEL_PASSWORD is not set. Add it to ~/.hyped/.env and restart the daemon.')
-    }
     const username = process.env.NGROK_TUNNEL_USERNAME ?? 'hyped'
-    const password = process.env.NGROK_TUNNEL_PASSWORD
+    const password = randomBytes(12).toString('base64url').slice(0, 16)
 
     const id = randomBytes(8).toString('hex')
     const listener = await ngrok.forward({
