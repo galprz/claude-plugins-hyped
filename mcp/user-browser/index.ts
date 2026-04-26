@@ -10,6 +10,7 @@ const PORT = parseInt(process.env.CHROME_TOOL_PORT ?? '9222')
 const SESSION_ID = randomUUID()
 
 let client: DaemonClient | null = null
+let joined = false
 
 // Tools that only need the daemon WebSocket, not a ready Chrome tab
 const DAEMON_ONLY_TOOLS = new Set(['list_profiles', 'open_browser', 'close_browser'])
@@ -32,14 +33,17 @@ async function connectDaemon(): Promise<DaemonClient> {
 async function getClient(): Promise<DaemonClient> {
   const c = await connectDaemon()
 
-  c.join()
+  if (!joined) {
+    c.join()
+    joined = true
 
-  await Promise.race([
-    c.ready,
-    new Promise<never>((_, rej) =>
-      setTimeout(() => rej(new Error('Browser not ready after 20s. Call open_browser first.')), 20000)
-    ),
-  ])
+    await Promise.race([
+      c.ready,
+      new Promise<never>((_, rej) =>
+        setTimeout(() => rej(new Error('Browser not ready after 20s. Call open_browser first.')), 20000)
+      ),
+    ])
+  }
 
   return c
 }
