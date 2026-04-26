@@ -34,7 +34,7 @@
       "args": [
         "run",
         "--cwd",
-        "${CLAUDE_PLUGIN_ROOT}/mcp/chrome-tool",
+        "${CLAUDE_PLUGIN_ROOT}/mcp/user-browser",
         "--silent",
         "start"
       ],

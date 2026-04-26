@@ -1,5 +1,6 @@
 import { WebSocketServer, WebSocket } from 'ws'
 import { createServer } from 'http'
+import { execSync } from 'child_process'
 import { resolve } from 'path'
 import { SessionRegistry } from './sessions'
 import { launchChrome } from './chrome'
@@ -12,15 +13,35 @@ const EXTENSION_PATH = process.env.CHROME_TOOL_EXT ??
 
 const sessions = new SessionRegistry()
 let extensionSocket: WebSocket | null = null
-let launchedChromePid: number | null = null
+let windowIdsBefore = new Set<string>()
 
-async function killChrome(pid: number): Promise<void> {
-  try { process.kill(pid, 'SIGTERM') } catch { return } // already dead
-  for (let i = 0; i < 3; i++) {
-    await new Promise<void>(r => setTimeout(r, 1000))
-    try { process.kill(pid, 0) } catch { return } // dead
-  }
-  try { process.kill(pid, 'SIGKILL') } catch { /* ignore */ }
+function getChromeWindowIds(): Set<string> {
+  try {
+    const out = execSync(
+      'osascript -e \'tell application "Google Chrome" to get id of every window\'',
+      { timeout: 3000 },
+    ).toString().trim()
+    if (!out) return new Set()
+    return new Set(out.split(',').map(s => s.trim()))
+  } catch { return new Set() }
+}
+
+function closeChromeWindowById(windowId: string): void {
+  try {
+    execSync(
+      `osascript -e 'tell application "Google Chrome" to close (every window whose id is ${windowId})'`,
+      { timeout: 3000 },
+    )
+  } catch { /* window already closed */ }
+}
+
+function focusChromeWindowById(windowId: string): void {
+  try {
+    execSync(
+      `osascript -e 'tell application "Google Chrome" to set index of (every window whose id is ${windowId}) to 1' -e 'activate application "Google Chrome"'`,
+      { timeout: 3000 },
+    )
+  } catch { /* ignore */ }
 }
 
 function sendExt(msg: DaemonToExt): void {
@@ -98,8 +119,8 @@ function handleClient(ws: WebSocket): void {
         // Fallback: auto-launch with Default profile if Chrome isn't open yet
         console.error('[daemon] no extension on join — auto-launching Default profile')
         try {
-          const proc = launchChrome(EXTENSION_PATH, 'Default')
-          if (proc.pid) launchedChromePid = proc.pid
+          windowIdsBefore = getChromeWindowIds()
+          launchChrome(EXTENSION_PATH, 'Default')
         } catch (e) {
           sendClient(ws, { type: 'error', message: `Chrome launch failed: ${(e as Error).message}` })
         }
@@ -130,15 +151,19 @@ function handleClient(ws: WebSocket): void {
         profileDir = resolved
       }
 
-      // Kill existing Chrome first if already open
-      if (launchedChromePid !== null) {
-        await killChrome(launchedChromePid)
-        launchedChromePid = null
-      }
-
       try {
-        const proc = launchChrome(EXTENSION_PATH, profileDir)
-        if (proc.pid) launchedChromePid = proc.pid
+        windowIdsBefore = getChromeWindowIds()
+        launchChrome(EXTENSION_PATH, profileDir)
+        // Wait for Chrome to open the new window, then focus it
+        // so the extension's open_tab creates tabs in the correct window
+        await new Promise<void>(r => setTimeout(r, 1500))
+        const afterIds = getChromeWindowIds()
+        for (const id of afterIds) {
+          if (!windowIdsBefore.has(id)) {
+            focusChromeWindowById(id)
+            break
+          }
+        }
         sendClient(ws, { type: 'browser_opened' })
       } catch (e) {
         sendClient(ws, { type: 'error', message: `Chrome launch failed: ${(e as Error).message}` })
@@ -147,12 +172,21 @@ function handleClient(ws: WebSocket): void {
     }
 
     if (msg.type === 'close_browser') {
-      if (launchedChromePid === null) {
-        sendClient(ws, { type: 'browser_closed' })
-        return
+      // Close only the windows we opened (new IDs since launch)
+      const currentIds = getChromeWindowIds()
+      for (const id of currentIds) {
+        if (!windowIdsBefore.has(id)) {
+          closeChromeWindowById(id)
+        }
       }
-      await killChrome(launchedChromePid)
-      launchedChromePid = null
+      // Clean up sessions owned by this client
+      for (const session of sessions.all()) {
+        if (session.clientSocket === ws) {
+          sendExt({ type: 'close_tab', session_id: session.sessionId })
+          sessions.remove(session.sessionId)
+        }
+      }
+      windowIdsBefore = new Set()
       sendClient(ws, { type: 'browser_closed' })
       return
     }

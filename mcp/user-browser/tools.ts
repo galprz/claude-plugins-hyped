@@ -156,7 +156,7 @@ export const toolDefinitions = [
   },
   {
     name: 'close_browser',
-    description: 'Kill the Chrome instance that was launched by open_browser.',
+    description: 'Close the browser tabs opened by this session. Does not quit Chrome itself.',
     inputSchema: { type: 'object', properties: {} },
   },
 ]
