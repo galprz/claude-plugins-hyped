@@ -1,8 +1,5 @@
 import * as ngrok from '@ngrok/ngrok'
 import { randomBytes } from 'crypto'
-import { appendFileSync, readFileSync } from 'fs'
-import { homedir } from 'os'
-import { join } from 'path'
 
 interface TunnelState {
   id: string
@@ -10,24 +7,6 @@ interface TunnelState {
   name: string
   url: string
   listener: Awaited<ReturnType<typeof ngrok.forward>>
-}
-
-const ENV_FILE = join(homedir(), '.hyped', '.env')
-
-function ensurePassword(): string {
-  // Already set in environment — use it
-  if (process.env.NGROK_TUNNEL_PASSWORD) {
-    return process.env.NGROK_TUNNEL_PASSWORD
-  }
-  // Auto-generate, persist to ~/.hyped/.env, and set for this process
-  const password = randomBytes(12).toString('base64url').slice(0, 16)
-  try {
-    appendFileSync(ENV_FILE, `\nNGROK_TUNNEL_PASSWORD=${password}\n`)
-  } catch {
-    // If we can't write the env file, still continue with the generated value
-  }
-  process.env.NGROK_TUNNEL_PASSWORD = password
-  return password
 }
 
 export class TunnelManager {
@@ -38,7 +17,7 @@ export class TunnelManager {
       throw new Error('NGROK_AUTHTOKEN is not set. Add it to ~/.hyped/.env and restart the daemon.')
     }
     const username = process.env.NGROK_TUNNEL_USERNAME ?? 'hyped'
-    const password = ensurePassword()
+    const password = randomBytes(12).toString('base64url').slice(0, 16)
 
     const id = randomBytes(8).toString('hex')
     const listener = await ngrok.forward({
