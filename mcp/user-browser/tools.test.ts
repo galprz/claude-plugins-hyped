@@ -30,7 +30,7 @@ test('screenshot returns image content', async () => {
 
 test('screenshot with save_to writes JPEG to file and returns image + path', async () => {
   mockClient.sendCommand.mockResolvedValue({ data: 'base64data' })
-  const saveTo = '/tmp/chrome-tool-test-shot.jpg'
+  const saveTo = '/tmp/user-browser-test-shot.jpg'
   if (existsSync(saveTo)) unlinkSync(saveTo)
   const result = await executeTool('screenshot', { save_to: saveTo }, mockClient as any)
   expect(existsSync(saveTo)).toBe(true)

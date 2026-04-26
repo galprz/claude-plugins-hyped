@@ -29,7 +29,7 @@ async function main() {
   ])
 
   const server = new Server(
-    { name: 'chrome-tool', version: '1.0.0' },
+    { name: 'user-browser', version: '1.0.0' },
     { capabilities: { tools: {} } }
   )
 

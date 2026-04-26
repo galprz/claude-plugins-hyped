@@ -21,11 +21,17 @@ Manage jobs: `cron_list`, `cron_pause`, `cron_resume`, `cron_remove`.
 
 ### `hyped-cron-onboarding`
 **When:** Creating a cron job that runs independently (no project context).  
-**How:** Walks through tool selection (chrome-tool for web/screenshots, local-tts for audio output), standing instructions, and optional sub-agents — then calls `cron_create` with `workspace_mode: "isolated"`.
+**How:** Walks through tool selection (incognito-browser for web/screenshots, local-tts for audio output), standing instructions, and optional sub-agents — then calls `cron_create` with `workspace_mode: "isolated"`.
 
-### `chrome-bridge`
-**When:** User asks to browse the web, scrape content, or record a browser session.  
-**How:** Controls real Chrome via MCP tools (CDP relay) — no CLI commands. Core tools: `navigate`, `screenshot`, `click`, `type`, `eval`, `record_start` / `record_stop`. Read each screenshot with the Read tool to see the page.
+### `user-browser`
+**When:** The page requires login or you need the user's existing cookies/session.  
+**Use `incognito-browser` instead** for any public page or task that doesn't need authentication.  
+**How:** Controls real Chrome via MCP tools (CDP relay). Core tools: `navigate`, `screenshot`, `click`, `type`, `eval`, `record_start` / `record_stop`.
+
+### `incognito-browser`
+**When:** Default for all browser tasks — scraping, screenshots, recording, any public page.  
+**Switch to `user-browser`** only when the page requires authentication or existing cookies.  
+**How:** Headless Playwright browser. Same core tools as user-browser. `record_start` resets browser state — navigate after calling it, not before.
 
 ### `heartbeat`
 **When:** Automatically — whenever you start a deployment, build, migration, or any long-running process. No user command needed.  
