@@ -8,7 +8,7 @@ const manager = new TunnelManager()
 const TOOLS = [
   {
     name: 'tunnel_open',
-    description: 'Open an ngrok tunnel to a local URL. Returns a copy-paste URL with Basic Auth embedded (https://hyped:<token>@<host>).',
+    description: 'Open an ngrok tunnel to a local URL. Returns a copy-paste URL with Basic Auth embedded using NGROK_TUNNEL_USERNAME (default: hyped) and NGROK_TUNNEL_PASSWORD from env.',
     inputSchema: {
       type: 'object',
       required: ['local_url'],

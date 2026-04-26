@@ -5,7 +5,6 @@ interface TunnelState {
   id: string
   local_url: string
   name: string
-  token: string
   url: string
   listener: Awaited<ReturnType<typeof ngrok.forward>>
 }
@@ -17,21 +16,25 @@ export class TunnelManager {
     if (!process.env.NGROK_AUTHTOKEN) {
       throw new Error('NGROK_AUTHTOKEN is not set. Add it to ~/.hyped/.env and restart the daemon.')
     }
+    if (!process.env.NGROK_TUNNEL_PASSWORD) {
+      throw new Error('NGROK_TUNNEL_PASSWORD is not set. Add it to ~/.hyped/.env and restart the daemon.')
+    }
+    const username = process.env.NGROK_TUNNEL_USERNAME ?? 'hyped'
+    const password = process.env.NGROK_TUNNEL_PASSWORD
+
     const id = randomBytes(8).toString('hex')
-    const token = randomBytes(9).toString('base64url').slice(0, 12)
     const listener = await ngrok.forward({
       addr: local_url,
       authtoken_from_env: true,
-      basic_auth: [`hyped:${token}`],
+      basic_auth: [`${username}:${password}`],
     })
     const rawUrl = listener.url()
     if (!rawUrl) {
       await listener.close()
       throw new Error(`ngrok.forward() returned a listener with no URL for ${local_url}`)
     }
-    // Embed credentials so user can paste the URL directly into their browser
-    const url = rawUrl.replace('https://', `https://hyped:${token}@`)
-    this.tunnels.set(id, { id, local_url, name: name ?? local_url, token, url, listener })
+    const url = rawUrl.replace('https://', `https://${username}:${password}@`)
+    this.tunnels.set(id, { id, local_url, name: name ?? local_url, url, listener })
     return { id, url, status: 'open' }
   }
 

@@ -17,15 +17,27 @@ describe('TunnelManager.open', () => {
     )
     mockClose.mockClear()
     process.env.NGROK_AUTHTOKEN = 'test-token'
+    process.env.NGROK_TUNNEL_USERNAME = 'testuser'
+    process.env.NGROK_TUNNEL_PASSWORD = 'testpass'
   })
-  afterEach(() => { delete process.env.NGROK_AUTHTOKEN })
+  afterEach(() => {
+    delete process.env.NGROK_AUTHTOKEN
+    delete process.env.NGROK_TUNNEL_USERNAME
+    delete process.env.NGROK_TUNNEL_PASSWORD
+  })
 
-  test('returns id, url with basic auth embedded, status open', async () => {
+  test('embeds configured username and password in URL', async () => {
     const m = new TunnelManager()
     const r = await m.open('http://localhost:3000')
     expect(r.status).toBe('open')
-    expect(r.id).toBeTruthy()
-    expect(r.url).toMatch(/^https:\/\/hyped:[^@]+@abc123\.ngrok\.io$/)
+    expect(r.url).toBe('https://testuser:testpass@abc123.ngrok.io')
+  })
+
+  test('defaults username to "hyped" when NGROK_TUNNEL_USERNAME is not set', async () => {
+    delete process.env.NGROK_TUNNEL_USERNAME
+    const m = new TunnelManager()
+    const r = await m.open('http://localhost:3000')
+    expect(r.url).toBe('https://hyped:testpass@abc123.ngrok.io')
   })
 
   test('passes name through to list()', async () => {
@@ -43,6 +55,11 @@ describe('TunnelManager.open', () => {
   test('throws when NGROK_AUTHTOKEN is not set', async () => {
     delete process.env.NGROK_AUTHTOKEN
     await expect(new TunnelManager().open('http://localhost:3000')).rejects.toThrow('NGROK_AUTHTOKEN')
+  })
+
+  test('throws when NGROK_TUNNEL_PASSWORD is not set', async () => {
+    delete process.env.NGROK_TUNNEL_PASSWORD
+    await expect(new TunnelManager().open('http://localhost:3000')).rejects.toThrow('NGROK_TUNNEL_PASSWORD')
   })
 
   test('throws and closes listener when url() returns null', async () => {
@@ -63,8 +80,14 @@ describe('TunnelManager.close', () => {
     )
     mockClose.mockClear()
     process.env.NGROK_AUTHTOKEN = 'test-token'
+    process.env.NGROK_TUNNEL_USERNAME = 'testuser'
+    process.env.NGROK_TUNNEL_PASSWORD = 'testpass'
   })
-  afterEach(() => { delete process.env.NGROK_AUTHTOKEN })
+  afterEach(() => {
+    delete process.env.NGROK_AUTHTOKEN
+    delete process.env.NGROK_TUNNEL_USERNAME
+    delete process.env.NGROK_TUNNEL_PASSWORD
+  })
 
   test('calls listener.close and removes tunnel', async () => {
     const m = new TunnelManager()
@@ -87,8 +110,14 @@ describe('TunnelManager.list', () => {
       Promise.resolve({ url: () => 'https://abc123.ngrok.io', close: mockClose })
     )
     process.env.NGROK_AUTHTOKEN = 'test-token'
+    process.env.NGROK_TUNNEL_USERNAME = 'testuser'
+    process.env.NGROK_TUNNEL_PASSWORD = 'testpass'
   })
-  afterEach(() => { delete process.env.NGROK_AUTHTOKEN })
+  afterEach(() => {
+    delete process.env.NGROK_AUTHTOKEN
+    delete process.env.NGROK_TUNNEL_USERNAME
+    delete process.env.NGROK_TUNNEL_PASSWORD
+  })
 
   test('returns all open tunnels', async () => {
     const m = new TunnelManager()
@@ -113,17 +142,23 @@ describe('TunnelManager.status', () => {
       Promise.resolve({ url: () => 'https://abc123.ngrok.io', close: mockClose })
     )
     process.env.NGROK_AUTHTOKEN = 'test-token'
+    process.env.NGROK_TUNNEL_USERNAME = 'testuser'
+    process.env.NGROK_TUNNEL_PASSWORD = 'testpass'
   })
-  afterEach(() => { delete process.env.NGROK_AUTHTOKEN })
+  afterEach(() => {
+    delete process.env.NGROK_AUTHTOKEN
+    delete process.env.NGROK_TUNNEL_USERNAME
+    delete process.env.NGROK_TUNNEL_PASSWORD
+  })
 
-  test('returns tunnel state', async () => {
+  test('returns tunnel state with embedded credentials', async () => {
     const m = new TunnelManager()
     const { id } = await m.open('http://localhost:3000', 'myapp')
     const s = m.status(id)
     expect(s.id).toBe(id)
     expect(s.port).toBe('http://localhost:3000')
     expect(s.status).toBe('open')
-    expect(s.url).toMatch(/^https:\/\/hyped:/)
+    expect(s.url).toBe('https://testuser:testpass@abc123.ngrok.io')
   })
 
   test('throws for unknown id', () => {
