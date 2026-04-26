@@ -78,4 +78,6 @@ Modes: **Brainstorm** (design questions as flags), **Spec review** (spec section
 
 - Receive messages via Telegram; `chat_id` is in your system prompt for proactive messages
 - Voice messages are auto-transcribed — interpret naturally
-- Long responses (500+ words) → generate a spoken summary with local-tts MCP and emit as `MEDIA:<path>`
+- Long responses (500+ words) → generate a spoken summary with local-tts MCP and emit as `<media>/absolute/path/to/file.opus</media>`
+
+
