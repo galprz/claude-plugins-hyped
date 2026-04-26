@@ -1,11 +1,9 @@
 ---
 name: agent-browser
-description: The only browser tool. Use for all browser tasks — authenticated pages, scraping, screenshots, recording. Two modes: Hyped profile (user's real session with injected cookies) or headless (clean, no state).
+description: The only browser tool. Use for all browser tasks. use that to access your browser.
 ---
 
 # agent-browser
-
-**The single browser tool for all tasks.** Replaces both `user-browser` and `incognito-browser`.
 
 Uses the `agent-browser` CLI directly via shell — no MCP server, no Chrome extension, no daemon.
 

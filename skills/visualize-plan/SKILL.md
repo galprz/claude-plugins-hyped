@@ -130,13 +130,15 @@ On failure: read the error, fix it, retry (max 3 attempts).
 
 ### 6. Open a tunnel
 
-Follow the **`use-local-tunnel` skill** to expose `http://localhost:5200`. The tunnel returns `{ id, url, status }` where `url` is `https://hyped:<token>@<host>.ngrok-free.app`.
+Follow the **`use-local-tunnel` skill** to expose `http://localhost:5200`. The tunnel returns `{ id, url, status }`.
 
-Save the `id` (to close later) and extract `<token>` from the URL — you need it for `PLAN_TOKEN` in the next step.
+Save the `id` — it serves two purposes:
+1. Closing the tunnel later
+2. As `PLAN_TOKEN` — the session identifier the UI sends in its callback API call when the user saves, so the daemon can route the notification back to this Claude session
 
-Append `?chat_id=<TELEGRAM_CHAT_ID>&thread_id=<TELEGRAM_THREAD_ID>&_token=<token>` to the tunnel URL — double security (Basic Auth in URL + token in query param). `thread_id` is required so Telegram responses go back to the correct forum topic:
+Append `?chat_id=<TELEGRAM_CHAT_ID>&thread_id=<TELEGRAM_THREAD_ID>&_token=<id>` to the tunnel URL. `thread_id` is required so Telegram responses go back to the correct forum topic:
 ```
-https://hyped:<token>@<host>.ngrok-free.app?chat_id=<TELEGRAM_CHAT_ID>&thread_id=<TELEGRAM_THREAD_ID>&_token=<token>
+https://hyped:<password>@<host>.ngrok-free.app?chat_id=<TELEGRAM_CHAT_ID>&thread_id=<TELEGRAM_THREAD_ID>&_token=<id>
 ```
 
 ### 7. Start the dev server
@@ -144,17 +146,17 @@ https://hyped:<token>@<host>.ngrok-free.app?chat_id=<TELEGRAM_CHAT_ID>&thread_id
 ```bash
 lsof -i :5200 | grep LISTEN || echo "5200 is free"
 cd /tmp/plan-viewer-${FEATURE}
-PLAN_TOKEN=<token-from-step-6> bun run dev --port 5200 --host &
+PLAN_TOKEN=<id-from-step-6> bun run dev --port 5200 --host &
 sleep 2
 ```
 
-**`PLAN_TOKEN`** gates ALL requests to the dev server — the page itself and the API endpoints. Anyone without the matching token in the URL gets 401.
+**`PLAN_TOKEN`** is the tunnel `id`. The dev server uses it to validate the `_token` query param on all requests, and the UI includes it in the save callback so the daemon knows which session to notify.
 
 ### 8. Screenshot and send
 
-Navigate to `http://localhost:5200?_token=<token>` with `user-browser` (not the ngrok URL — ngrok shows a browser warning page that blocks the screenshot) and take a screenshot.
+Navigate to `http://localhost:5200?_token=<id>` with `user-browser` (not the ngrok URL — ngrok shows a browser warning page that blocks the screenshot) and take a screenshot.
 
-Then send the tunnel URL as a **separate plain text message** following the `use-local-tunnel` skill's sending rules — raw URL only, no markdown, no buttons. Append `?chat_id=<TELEGRAM_CHAT_ID>` to the URL before sending.
+Then send the tunnel URL as a **separate plain text message** following the `use-local-tunnel` skill's sending rules — raw URL only, no markdown, no buttons.
 
 ---
 
@@ -178,8 +180,8 @@ Read `review.json`, extract the user's answers, and **continue the superpowers s
 - **Open the tunnel before starting the dev server** — you need the token to set `PLAN_TOKEN` env var
 - Always pass `PLAN_TOKEN=<token>` when starting the dev server — omitting it leaves the server unprotected
 - Follow the `use-local-tunnel` skill for all tunnel open/send/close steps
-- Always append `?chat_id=<TELEGRAM_CHAT_ID>&_token=<token>` to the tunnel URL — Basic Auth in URL + `_token` param for double security
-- Screenshot from `http://localhost:5200?_token=<token>` not the ngrok URL — ngrok shows a warning page in the browser
+- Always append `?chat_id=<TELEGRAM_CHAT_ID>&_token=<id>` to the tunnel URL — the `id` from `tunnel_open` is the session token, not the ngrok password
+- Screenshot from `http://localhost:5200?_token=<id>` not the ngrok URL — ngrok shows a warning page in the browser
 - The visual UI is a presentation layer — never skip the analysis steps of the underlying superpowers skill
 - Always ask visual vs traditional preference before starting (Step 0)
 
