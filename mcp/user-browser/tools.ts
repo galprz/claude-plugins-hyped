@@ -6,6 +6,12 @@ export interface Focusable {
   focus(): void
 }
 
+export interface BrowserLifecycle {
+  openBrowser(profile?: string): Promise<void>
+  closeBrowser(): Promise<void>
+  listProfiles(): Promise<import('./profiles').ChromeProfile[]>
+}
+
 const recorder = new RecordingManager()
 
 function timeout<T>(ms: number, fn: () => Promise<T>): Promise<T> {
@@ -130,12 +136,35 @@ export const toolDefinitions = [
     description: 'Bring the browser window to the foreground and focus the session tab',
     inputSchema: { type: 'object', properties: {} },
   },
+  {
+    name: 'list_profiles',
+    description: 'List all available Chrome profiles. Call this before open_browser to let the user choose a profile.',
+    inputSchema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'open_browser',
+    description: 'Launch Chrome with a specific profile. If no profile is given, uses the Default profile. If already open, kills the existing Chrome instance first.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        profile: {
+          type: 'string',
+          description: 'Profile display name (e.g. "Work") or directory (e.g. "Profile 1"). Omit for Default.',
+        },
+      },
+    },
+  },
+  {
+    name: 'close_browser',
+    description: 'Kill the Chrome instance that was launched by open_browser.',
+    inputSchema: { type: 'object', properties: {} },
+  },
 ]
 
 export async function executeTool(
   name: string,
   args: Record<string, unknown>,
-  client: BrowserClient & Partial<Focusable>,
+  client: BrowserClient & Partial<Focusable> & Partial<BrowserLifecycle>,
   sessionId?: string,
 ): Promise<{ content: Array<{ type: string; [k: string]: unknown }> }> {
   try {
@@ -281,6 +310,31 @@ export async function executeTool(
       case 'focus_tab': {
         client.focus?.()
         return text('Browser window focused')
+      }
+
+      case 'list_profiles': {
+        if (!client.listProfiles) return text('list_profiles not available')
+        const profiles = await client.listProfiles()
+        if (profiles.length === 0) return text('No Chrome profiles found.')
+        const lines = profiles.map(p => `- ${p.name} (directory: ${p.directory})`).join('\n')
+        return text(`Available Chrome profiles:\n${lines}`)
+      }
+
+      case 'open_browser': {
+        if (!client.openBrowser) return text('open_browser not available')
+        const profile = args.profile as string | undefined
+        try {
+          await client.openBrowser(profile)
+          return text(`Chrome opened${profile ? ` with profile "${profile}"` : ' with Default profile'}`)
+        } catch (e) {
+          return text(`Failed to open browser: ${(e as Error).message}`)
+        }
+      }
+
+      case 'close_browser': {
+        if (!client.closeBrowser) return text('close_browser not available')
+        await client.closeBrowser()
+        return text('Chrome closed')
       }
 
       default:
