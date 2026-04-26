@@ -30,10 +30,11 @@ export function findChrome(): string {
   throw new Error('Chrome not found. Install Google Chrome or set CHROME_PATH env var.')
 }
 
-export function launchChrome(extensionPath: string): ChildProcess {
+export function launchChrome(extensionPath: string, profileDir = 'Default'): ChildProcess {
   const chromePath = findChrome()
   const proc = spawn(chromePath, [
     `--load-extension=${extensionPath}`,
+    `--profile-directory=${profileDir}`,
     '--no-first-run',
     '--no-default-browser-check',
   ], { detached: false, stdio: 'ignore' })
