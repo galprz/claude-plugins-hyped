@@ -69,9 +69,9 @@ export default defineConfig({
           req.on('data', chunk => { body += chunk })
           req.on('end', () => {
             try {
-              const { chat_id } = JSON.parse(body)
+              const { chat_id, thread_id } = JSON.parse(body)
               const feedbackPath = resolve(server.config.root, 'review.json')
-              const payload = JSON.stringify({ chat_id, feedback_path: feedbackPath })
+              const payload = JSON.stringify({ chat_id, thread_id, feedback_path: feedbackPath })
               const daemonReq = httpRequest({
                 host: '127.0.0.1', port: 7891,
                 path: '/api/plan-reviewed', method: 'POST',
