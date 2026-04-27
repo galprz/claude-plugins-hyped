@@ -64,14 +64,15 @@ Modes: **Brainstorm** (design questions as flags), **Spec review** (spec section
 **How:** `bunx shadcn@latest add <component>`. Components are copied into `src/components/ui/` and imported from `@/components/ui/<name>`. Never copy component code manually.
 
 ### `set-workspace`
-**When:** **MANDATORY** — trigger automatically whenever the user begins brainstorming a new feature/task OR approves a plan for implementation. This must happen **before writing any files** — no docs, plans, specs, code, or any other file until the workspace is set up or the user declines. Do not skip this.  
-**How:** Ask the user once: "Want me to set up a workspace for this?" If yes, derive a short kebab-case name from the task and call `workspace_set(name, chat_id)`. All subsequent work happens in the returned worktree path. If no, proceed without — but never ask again for the same session.
+**When:** **MANDATORY — the moment you understand what the user wants to build or fix next.** Do not wait for brainstorming, planning, or approval. As soon as the user's intent is clear (e.g. "let's add X", "fix the Y bug", "I want to build Z"), trigger this skill immediately — before writing any files, docs, plans, specs, or code.  
+**How:** Derive a short kebab-case name from the task and call `workspace_set(name, chat_id)`. This creates a git worktree on a `feature/<name>` branch and renames the Telegram group. All subsequent work happens in the returned worktree path.  
+**Rule:** Every new task gets its own workspace. No exceptions. Do not work on `main` directly.
 
 ---
 
 ## Development Workflow
 
-- New feature branch → `set-workspace` skill (mandatory) → `superpowers:using-git-worktrees`
+- Every new task → `set-workspace` skill first (mandatory, before anything else) → `superpowers:using-git-worktrees`
 - Implementing a plan task by task → `superpowers:executing-plans`
 - TDD → `superpowers:test-driven-development`
 - After finishing `superpowers:writing-plans` → always offer to do a plan alignment review using the `visualize-plan` skill
