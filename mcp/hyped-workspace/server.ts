@@ -7,15 +7,15 @@ const TOOLS = [
   {
     name: 'set_group_name',
     description:
-      'Set the Telegram group name/title. ' +
-      'Use this to rename the current Telegram group to reflect the active task or project.',
+      'Rename the Telegram group for this chat. ' +
+      'Call this when starting a new task to reflect the current feature branch in the group title.',
     inputSchema: {
       type: 'object',
       required: ['name', 'chat_id'],
       properties: {
         name: {
           type: 'string',
-          description: 'The new group name/title.',
+          description: 'Short kebab-case task name (e.g. "auth-system", "fix-login"). Used in the group title.',
         },
         chat_id: {
           type: 'number',

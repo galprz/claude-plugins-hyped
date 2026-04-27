@@ -12,49 +12,34 @@ Short kebab-case name from the task (max ~20 chars, lowercase, hyphens only):
 - "fix login redirect bug" → `fix-login-redirect`
 - "dark mode for plan viewer" → `plan-viewer-dark-mode`
 
-### 2. Get chat_id
-Find the `chat_id` value from your system prompt. It appears as `"chat_id"` or `"Telegram chat_id"` in the session context injected by the daemon. If you cannot find it, use `0` as fallback (worktree will still be created but group won't be renamed).
-
-### 3. Call workspace_set — DO THIS NOW
-
-Call the `workspace_set` MCP tool immediately:
+### 2. Create the worktree
+Use the built-in `EnterWorktree` tool to create an isolated git worktree:
 
 ```
-workspace_set(name: "<derived-name>", chat_id: <chat_id>)
+EnterWorktree(name: "<derived-name>")
 ```
 
-This does two things in one call:
-- Creates a git worktree at `.worktrees/<name>` on branch `feature/<name>`
-- Renames the Telegram group to include the branch name
+This creates a worktree and switches into it. All subsequent work happens there.
 
-**Response:**
-```json
-{
-  "worktree_path": "/path/to/repo/.worktrees/<name>",
-  "branch": "feature/<name>",
-  "title": "hyped [feature/<name>]"
-}
+### 3. Rename the Telegram group
+Get `chat_id` from your system prompt (labeled `"chat_id"` or `"Telegram chat_id"`). Then call the MCP tool:
+
+```
+set_group_name(name: "<derived-name>", chat_id: <chat_id>)
 ```
 
-### 4. Switch to the worktree
-`cd` into the returned `worktree_path` — all subsequent work happens there.
+- If this succeeds, the Telegram group title now reflects the feature.
+- If this fails (e.g. no bot token, not a group chat), **continue anyway** — the worktree is already created. Just warn the user that the group rename failed and include the error.
 
-### 5. Confirm
+### 4. Confirm
 Tell the user:
-> Workspace ready: `feature/<name>`
+> Workspace ready: `<derived-name>`
 
 Then — and only then — proceed with brainstorming, planning, or whatever comes next.
-
-## Error handling
-
-| Error | Meaning | Action |
-|-------|---------|--------|
-| Name already taken | Worktree/branch exists | Suggest 2–3 alternatives, let user choose |
-| Invalid name | Not kebab-case | Fix the name and retry |
 
 ## Rules
 - Do not ask for permission — just create the workspace as soon as intent is clear
 - Never work on `main` directly
-- Name must be kebab-case — the tool rejects anything else
+- Name must be kebab-case
 - One workspace per task, always
-- **Do NOT use `EnterWorktree` tool or `superpowers:using-git-worktrees`** — this skill replaces them
+- Group rename failure is non-blocking — the worktree is what matters

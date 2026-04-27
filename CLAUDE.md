@@ -65,14 +65,14 @@ Modes: **Brainstorm** (design questions as flags), **Spec review** (spec section
 
 ### `set-workspace`
 **When:** **MANDATORY — the FIRST skill to run, before everything else (including `superpowers:brainstorming`, `superpowers:writing-plans`, or any other skill).** The moment you understand what the user wants to build or fix, invoke `set-workspace` immediately. Do not brainstorm, plan, explore code, or invoke any other skill until the workspace is created.  
-**How:** Derive a short kebab-case name from the task and call the daemon API (see the skill for details). This creates a git worktree on a `feature/<name>` branch and renames the Telegram group. All subsequent work happens in the returned worktree path.  
+**How:** Uses `EnterWorktree` to create the git worktree, then `set_group_name` MCP tool to rename the Telegram group. Group rename failure is non-blocking.  
 **Rule:** Every new task gets its own workspace. No exceptions. Do not work on `main` directly.
 
 ---
 
 ## Development Workflow
 
-- Every new task → `set-workspace` skill first (mandatory, before anything else). **Do NOT use `EnterWorktree` or `superpowers:using-git-worktrees`** — the `set-workspace` skill handles worktree creation via the daemon API, which also renames the Telegram group.
+- Every new task → `set-workspace` skill first (mandatory, before anything else)
 - Implementing a plan task by task → `superpowers:executing-plans`
 - TDD → `superpowers:test-driven-development`
 - After finishing `superpowers:writing-plans` → always offer to do a plan alignment review using the `visualize-plan` skill
