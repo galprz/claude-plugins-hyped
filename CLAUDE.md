@@ -54,7 +54,8 @@ Modes: **Brainstorm** (design questions as flags), **Spec review** (spec section
 
 ### `use-local-tunnel`
 **When:** User wants to preview, share, or expose something running locally (a UI, server, file).  
-**How:** MCP tools: `tunnel_open({ local_url })` → `{ id, url }`, `tunnel_close({ id })`, `tunnel_list()`. **Always send the URL as plain text** — never markdown/HTML links. Telegram strips embedded credentials from formatted links.
+**How:** MCP tools: `tunnel_open({ local_url })` → `{ id, url }`, `tunnel_close({ id })`, `tunnel_list()`. **Always send the URL as plain text** — never markdown/HTML links. Telegram strips embedded credentials from formatted links.  
+**IMPORTANT:** Do NOT append `?_token=` to the tunnel URL unless you are running the **plan-viewer** vite server (which has PLAN_TOKEN middleware). For all other servers (brainstorming companion, Next.js dev, etc.), the bare ngrok URL with embedded Basic Auth is sufficient — adding `?_token=` will cause "Not found" errors.
 
 ### `tailwind-v4-shadcn`
 **When:** Setting up Tailwind CSS v4 with Vite. Key differences from v3: no `tailwind.config.js`, use `@tailwindcss/vite` plugin, import with `@import "tailwindcss"`, configure theme via `@theme` directive in CSS.
@@ -62,6 +63,16 @@ Modes: **Brainstorm** (design questions as flags), **Spec review** (spec section
 ### `shadcn`
 **When:** Adding shadcn/ui components to a React project.  
 **How:** `bunx shadcn@latest add <component>`. Components are copied into `src/components/ui/` and imported from `@/components/ui/<name>`. Never copy component code manually.
+
+### `food-delivery-advisor`
+**When:** User wants food delivery recommendations, restaurant picks, or asks you to act as a food advisor (GrubHub or similar).  
+**How:** Authenticated browsing via Hyped Chrome profile (CDP port 9223). Score by `rating × log10(reviews + 1)` — not stars alone. Always cross-validate top picks against Google/Yelp in a new tab (gap >1.0 = skip). Send captioned photos: `<media caption="Name | stars | time | link">/tmp/photo.jpg</media>`. Present three options: most proven, fastest, most interesting.
+
+Read the full skill for URL patterns, scoring thresholds, photo sourcing, and the cross-validation gap table.
+
+### `record-browser-session`
+**When:** User asks to record a browser session, capture a browsing demo, or send a video of web navigation.  
+**How:** `agent-browser record start /tmp/session.webm` → browse with `sleep 2–3` between actions → `agent-browser record stop` → **always** convert: `ffmpeg -i /tmp/session.webm -c:v libx264 -preset fast -crf 23 -c:a aac /tmp/session.mp4 -y` → send `<media>/tmp/session.mp4</media>`. Telegram only accepts `.mp4 .mov .avi .mkv` — never send `.webm` directly.
 
 ### `set-workspace`
 **When:** **MANDATORY — the FIRST skill to run, before everything else (including `superpowers:brainstorming`, `superpowers:writing-plans`, or any other skill).** The moment you understand what the user wants to build or fix, invoke `set-workspace` immediately. Do not brainstorm, plan, explore code, or invoke any other skill until the workspace is created.  

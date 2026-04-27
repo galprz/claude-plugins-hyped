@@ -180,7 +180,7 @@ Read `review.json`, extract the user's answers, and **continue the superpowers s
 - **Open the tunnel before starting the dev server** — you need the token to set `PLAN_TOKEN` env var
 - Always pass `PLAN_TOKEN=<token>` when starting the dev server — omitting it leaves the server unprotected
 - Follow the `use-local-tunnel` skill for all tunnel open/send/close steps
-- Always append `?chat_id=<TELEGRAM_CHAT_ID>&_token=<id>` to the tunnel URL — the `id` from `tunnel_open` is the session token, not the ngrok password
+- Always append `?chat_id=<TELEGRAM_CHAT_ID>&_token=<id>` to the tunnel URL — the `id` from `tunnel_open` is the session token, not the ngrok password. **This `?_token=` param is SPECIFIC to the plan-viewer vite server only** — never apply it to other servers (brainstorming companion, Next.js dev, etc.)
 - Screenshot from `http://localhost:5200?_token=<id>` not the ngrok URL — ngrok shows a warning page in the browser
 - The visual UI is a presentation layer — never skip the analysis steps of the underlying superpowers skill
 - Always ask visual vs traditional preference before starting (Step 0)
