@@ -13,23 +13,21 @@ Short kebab-case name from the task (max ~20 chars, lowercase, hyphens only):
 - "dark mode for plan viewer" → `plan-viewer-dark-mode`
 
 ### 2. Get chat_id
-Find the `chat_id` value from your system prompt. It appears as `"chat_id"` or `"Telegram chat_id"` in the session context injected by the daemon. If you're running via Telegram, it's always present. If you cannot find it, use `0` as fallback (worktree will still be created but group won't be renamed).
+Find the `chat_id` value from your system prompt. It appears as `"chat_id"` or `"Telegram chat_id"` in the session context injected by the daemon. If you cannot find it, use `0` as fallback (worktree will still be created but group won't be renamed).
 
-### 3. Call the daemon — DO THIS NOW
+### 3. Call workspace_set — DO THIS NOW
 
-Run this bash command immediately. Do not skip it. Do not defer it. This is the core of the skill:
+Call the `workspace_set` MCP tool immediately:
 
-```bash
-curl -s -X POST http://localhost:7891/api/workspace \
-  -H "Content-Type: application/json" \
-  -d '{"chat_id": <chat_id>, "name": "<derived-name>"}'
+```
+workspace_set(name: "<derived-name>", chat_id: <chat_id>)
 ```
 
 This does two things in one call:
 - Creates a git worktree at `.worktrees/<name>` on branch `feature/<name>`
 - Renames the Telegram group to include the branch name
 
-**Response (200):**
+**Response:**
 ```json
 {
   "worktree_path": "/path/to/repo/.worktrees/<name>",
@@ -49,15 +47,14 @@ Then — and only then — proceed with brainstorming, planning, or whatever com
 
 ## Error handling
 
-| Status | Meaning | Action |
-|--------|---------|--------|
-| 409 | Name already taken | Suggest 2–3 alternatives, let user choose |
-| 503 | No Telegram bot token | Worktree still works, group rename skipped — warn user |
-| 500 | Git or system error | Show the error message, ask user to check |
+| Error | Meaning | Action |
+|-------|---------|--------|
+| Name already taken | Worktree/branch exists | Suggest 2–3 alternatives, let user choose |
+| Invalid name | Not kebab-case | Fix the name and retry |
 
 ## Rules
 - Do not ask for permission — just create the workspace as soon as intent is clear
 - Never work on `main` directly
-- Name must be kebab-case — the daemon rejects anything else
+- Name must be kebab-case — the tool rejects anything else
 - One workspace per task, always
 - **Do NOT use `EnterWorktree` tool or `superpowers:using-git-worktrees`** — this skill replaces them

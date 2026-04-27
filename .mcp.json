@@ -28,6 +28,16 @@
         "--silent",
         "start"
       ]
+    },
+    "hyped-workspace": {
+      "command": "bun",
+      "args": [
+        "run",
+        "--cwd",
+        "${CLAUDE_PLUGIN_ROOT}/mcp/hyped-workspace",
+        "--silent",
+        "start"
+      ]
     }
   }
 }
