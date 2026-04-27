@@ -300,7 +300,8 @@ Before including any post in the digest, score it against these rules. **A post 
 - ❌ **"We just shipped / proud to announce / thrilled to share"** — product launch framing
 - ❌ **Company page post** — always agenda, never value
 - ❌ **"Follow me for more"** or engagement bait at the end
-- ❌ **Inspirational journey story** — "it took us X years to get here..."
+- ❌ **Inspirational journey story** — "it took us X years to get here...", milestone posts, "we just expanded to the US"
+- ❌ **Startup CEO personal narrative** — any CEO/founder sharing their company's growth, struggles, or achievements as a story, even when written in first person and emotionally resonant
 - ❌ **Promoted / Suggested** label — paid placement, skip always
 - ❌ **Numbered list of generic wisdom** with no specifics — "5 rules for success as a CEO"
 - ❌ **VC/fund promoting their own report or portfolio**
@@ -316,6 +317,7 @@ Before including any post in the digest, score it against these rules. **A post 
 | Maor Shlomo (Base44 founder) on SEO/GEO launch | ❌ Agenda | Founder announcing own product |
 | Endrit Restelica (8M followers) on AI democratizing building | ❌ Agenda | Personal brand fluff, "follow me for more" |
 | Abrem A. (Police Captain) on Axon DFR | ❌ Out of interest | Field-relevant but public safety ops not in user's interest zone |
+| Ori Nurieli (CEO @ StudyWise) "TLV to San Diego took 14 hours, for us 2 years" | ❌ Agenda | Startup CEO milestone story — emotionally written but purely self-promotional narrative |
 
 ---
 
