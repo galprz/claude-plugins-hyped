@@ -1,6 +1,8 @@
 # Skill: set-workspace
 
-Trigger this skill **the moment you understand the user's intent** — what they want to build, fix, or change. Do not wait for brainstorming, planning, or approval. Every new task gets its own workspace.
+**This skill has the highest priority — it runs BEFORE all other skills, including `superpowers:brainstorming`, `superpowers:writing-plans`, and any exploration or planning.**
+
+Trigger this skill **the moment you understand the user's intent** — what they want to build, fix, or change. Do not brainstorm, explore code, or invoke any other skill until the workspace is created. Every new task gets its own workspace.
 
 ## Behavior
 

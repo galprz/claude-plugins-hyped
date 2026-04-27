@@ -64,8 +64,8 @@ Modes: **Brainstorm** (design questions as flags), **Spec review** (spec section
 **How:** `bunx shadcn@latest add <component>`. Components are copied into `src/components/ui/` and imported from `@/components/ui/<name>`. Never copy component code manually.
 
 ### `set-workspace`
-**When:** **MANDATORY — the moment you understand what the user wants to build or fix next.** Do not wait for brainstorming, planning, or approval. As soon as the user's intent is clear (e.g. "let's add X", "fix the Y bug", "I want to build Z"), trigger this skill immediately — before writing any files, docs, plans, specs, or code.  
-**How:** Derive a short kebab-case name from the task and call `workspace_set(name, chat_id)`. This creates a git worktree on a `feature/<name>` branch and renames the Telegram group. All subsequent work happens in the returned worktree path.  
+**When:** **MANDATORY — the FIRST skill to run, before everything else (including `superpowers:brainstorming`, `superpowers:writing-plans`, or any other skill).** The moment you understand what the user wants to build or fix, invoke `set-workspace` immediately. Do not brainstorm, plan, explore code, or invoke any other skill until the workspace is created.  
+**How:** Derive a short kebab-case name from the task and call the daemon API (see the skill for details). This creates a git worktree on a `feature/<name>` branch and renames the Telegram group. All subsequent work happens in the returned worktree path.  
 **Rule:** Every new task gets its own workspace. No exceptions. Do not work on `main` directly.
 
 ---
