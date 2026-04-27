@@ -72,7 +72,7 @@ Modes: **Brainstorm** (design questions as flags), **Spec review** (spec section
 
 ## Development Workflow
 
-- Every new task → `set-workspace` skill first (mandatory, before anything else) → `superpowers:using-git-worktrees`
+- Every new task → `set-workspace` skill first (mandatory, before anything else). **Do NOT use `EnterWorktree` or `superpowers:using-git-worktrees`** — the `set-workspace` skill handles worktree creation via the daemon API, which also renames the Telegram group.
 - Implementing a plan task by task → `superpowers:executing-plans`
 - TDD → `superpowers:test-driven-development`
 - After finishing `superpowers:writing-plans` → always offer to do a plan alignment review using the `visualize-plan` skill
