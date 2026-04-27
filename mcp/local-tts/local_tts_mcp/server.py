@@ -9,6 +9,7 @@ import fastmcp
 mcp = fastmcp.FastMCP("local-tts")
 
 _MODEL = "mlx-community/orpheus-3b-0.1-ft-4bit"
+_VOICE = "jake"
 _SPEED = 1.2
 _MAX_TOKENS = 8192  # ~95s at 86 tokens/sec
 
@@ -23,7 +24,7 @@ def _convert_to_opus(wav: Path) -> Path:
     return opus
 
 
-def _generate(text: str, voice: str, out_dir: Path) -> Path:
+def _generate(text: str, out_dir: Path) -> Path:
     """Shell out to mlx_audio.tts.generate and return the WAV path."""
     prefix = f"tts_{uuid.uuid4().hex[:8]}"
     subprocess.run(
@@ -35,7 +36,7 @@ def _generate(text: str, voice: str, out_dir: Path) -> Path:
             "--file_prefix",  prefix,
             "--audio_format", "wav",
             "--join_audio",
-            "--voice",        voice,
+            "--voice",        _VOICE,
             "--speed",        str(_SPEED),
             "--max_tokens",   str(_MAX_TOKENS),
         ],
@@ -46,11 +47,11 @@ def _generate(text: str, voice: str, out_dir: Path) -> Path:
 
 
 @mcp.tool()
-def text_to_speech(text: str, voice: str = "jake") -> str:
+def text_to_speech(text: str) -> str:
     """Generate speech from text using Orpheus 3B TTS (local, Apple Silicon).
     Returns the absolute path to the generated Opus file."""
     out_dir = Path(tempfile.mkdtemp())
-    wav = _generate(text, voice, out_dir)
+    wav = _generate(text, out_dir)
     return str(_convert_to_opus(wav))
 
 
