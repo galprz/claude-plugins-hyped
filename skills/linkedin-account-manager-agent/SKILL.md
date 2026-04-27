@@ -283,15 +283,52 @@ Send to Telegram:
 
 ---
 
+## Post Quality Filter — Valuable vs Agenda
+
+Before including any post in the digest, score it against these rules. **A post must pass the value checklist AND fail the agenda checklist to be included.**
+
+### Value signals (need at least 2)
+- ✅ Author is a **practitioner** — engineer, PM, researcher, operator — NOT the founder/CEO of the product they're discussing
+- ✅ Contains **honest limitations or failures** ("the first approach failed", "this didn't work as expected")
+- ✅ **Technical specificity** — real experiment, comparison, numbers, before/after, architecture decision
+- ✅ **Curating someone else's work** with genuine synthesis (not just resharing with "great post!")
+- ✅ **Strong contrarian opinion** with reasoning, not just a hot take
+- ✅ Written in **first person about their own direct experience** (not about their company's success)
+
+### Agenda signals (any one = reject)
+- ❌ Author is **founder/CEO talking about their own product** — even if the insight sounds real
+- ❌ **"We just shipped / proud to announce / thrilled to share"** — product launch framing
+- ❌ **Company page post** — always agenda, never value
+- ❌ **"Follow me for more"** or engagement bait at the end
+- ❌ **Inspirational journey story** — "it took us X years to get here..."
+- ❌ **Promoted / Suggested** label — paid placement, skip always
+- ❌ **Numbered list of generic wisdom** with no specifics — "5 rules for success as a CEO"
+- ❌ **VC/fund promoting their own report or portfolio**
+
+### Real examples (calibrated from user feedback)
+
+| Post | Verdict | Why |
+|------|---------|-----|
+| Gal Vered (Checksum founder) on background agents | ❌ Agenda | Founder subtly positioning own product, even though insight sounds real |
+| Zohar Einy (Port.io CEO) on skills library | ❌ Agenda | "How WE built it" = case study = marketing |
+| Anthony Kroeger (engineer @ Lyra) on GPT 5.5 vs Opus | ✅ Value | Practitioner, honest comparison, no product to sell, strong specific take |
+| Roi Shikler (PM @ Band) summarizing Claude CAD experiment | ✅ Value | Curating someone else's work, honest about failure, technical depth |
+| Maor Shlomo (Base44 founder) on SEO/GEO launch | ❌ Agenda | Founder announcing own product |
+| Endrit Restelica (8M followers) on AI democratizing building | ❌ Agenda | Personal brand fluff, "follow me for more" |
+| Abrem A. (Police Captain) on Axon DFR | ❌ Out of interest | Field-relevant but public safety ops not in user's interest zone |
+
+---
+
 ## Digest Workflow
 
 1. Open the feed
 2. Install human scroll engine (Step 1 above)
 3. Run `humanScroll(3000)` and wait ~35 seconds
 4. Call `getPostTexts()` — returns all loaded posts
-5. Rank by relevance to user's interests: AI, engineering, startups, Israel tech scene, LangTalks/language learning
-6. Present top 3–5 with: **author**, **topic**, **why interesting**, **reaction count**
-7. Save the top 1–2 picks using the save flow above
+5. Apply the **Post Quality Filter** above to every post — reject anything with even one agenda signal
+6. From what passes, rank by relevance: AI agents, LLMs, dev tools, engineering, Israel tech scene, NLP/language learning
+7. Present top 3–5 with: **author + role**, **key insight in 2 sentences**, **why it's valuable**, **reaction count**
+8. Save the top 1–2 picks using the save flow above
 
 ---
 
