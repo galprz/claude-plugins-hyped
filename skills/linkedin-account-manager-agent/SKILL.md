@@ -215,6 +215,74 @@ agent-browser screenshot /tmp/linkedin_shot.png
 
 ---
 
+## Action: Record a Human-Like Scroll Session
+
+Use this to produce a video of natural feed browsing (looks indistinguishable from a real user).
+
+```bash
+# 1. Start recording
+agent-browser connect 9223
+agent-browser record start /tmp/linkedin_scroll.webm
+
+# 2. Open the feed
+agent-browser open https://www.linkedin.com/feed/
+# wait 4 seconds for feed to render (important — content loads async)
+```
+
+Then install and trigger the humanScroll engine (async):
+
+```bash
+agent-browser eval "
+;(function() {
+  const main = document.querySelector('main')
+  function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min }
+  function sleep(ms) { return new Promise(r => setTimeout(r, ms)) }
+  async function humanScroll(totalDistance) {
+    let scrolled = 0
+    const startTop = main.scrollTop
+    while (scrolled < totalDistance) {
+      const remaining = totalDistance - scrolled
+      const chunk = randInt(Math.min(200, remaining), Math.min(700, remaining))
+      const distToBottom = main.scrollHeight - main.scrollTop - main.clientHeight
+      const amount = distToBottom < 800 ? Math.min(chunk, distToBottom - 100) : chunk
+      if (amount <= 0) break
+      main.scrollTo({ top: main.scrollTop + amount, behavior: 'smooth' })
+      scrolled += amount
+      await sleep(600 + randInt(0, 200))
+      if (Math.random() < 0.10) {
+        main.scrollTo({ top: main.scrollTop - randInt(50, 150), behavior: 'smooth' })
+        await sleep(400 + randInt(0, 300))
+        scrolled -= 100
+      }
+      await sleep(randInt(1500, Math.min(6000, 1500 + chunk * 5)))
+    }
+    window.__done = { finalScrollTop: main.scrollTop, covered: main.scrollTop - startTop }
+  }
+  humanScroll(3500)
+})()"
+```
+
+Wait for scroll to finish, then stop recording and convert:
+
+```bash
+# Poll until scroll completes (takes 40-90 seconds for 3500px)
+until agent-browser eval "JSON.stringify(!!window.__done)" | grep -q "true"; do sleep 3; done
+
+agent-browser record stop
+
+# Convert webm → mp4 (Telegram requires mp4)
+ffmpeg -i /tmp/linkedin_scroll.webm -c:v libx264 -preset fast -crf 23 -c:a aac /tmp/linkedin_scroll.mp4 -y
+```
+
+Send to Telegram:
+```
+<media>/tmp/linkedin_scroll.mp4</media>
+```
+
+**Result:** ~4.5MB mp4, looks like a real human browsing — smooth easing, variable pauses, occasional back-scrolls, lazy loading firing naturally.
+
+---
+
 ## Digest Workflow
 
 1. Open the feed
