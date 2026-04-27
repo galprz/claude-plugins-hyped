@@ -49,27 +49,121 @@ agent-browser screenshot /tmp/linkedin_feed.png
 
 ---
 
-## Action: Read Feed Posts
+## How LinkedIn's Feed Works (Lazy Loading)
 
-Extract visible post text with:
+**Critical architecture facts discovered through live inspection:**
 
-```bash
-agent-browser eval "document.body.innerText.slice(0, 5000)"
-```
+- `<body>` is `overflow: hidden` — the page does NOT scroll
+- `<main>` is the real scroller (`overflow: scroll`, scrollHeight grows dynamically)
+- LinkedIn uses **IntersectionObserver** on a sentinel element near the bottom of loaded content
+- When the sentinel enters the `<main>` viewport, it fires an XHR for the next batch of posts
+- Each batch adds ~5000–6000px to scrollHeight (about 5–8 posts)
+- The scroll events fired by `scrollTo({behavior: 'smooth'})` are `isTrusted: true` — safe
 
-Repeat after scrolling to get more posts. Parse the result for author, content, and reaction counts to surface interesting items.
+**Scroll event profile (measured):**
+- ~66 events per 600px scroll
+- Event interval: 6–16ms (GPU frame cadence)
+- Natural ease-in-out curve: [0.5, 1, 3, 6.5, 11...38...11, 6.5, 3, 1] px/frame
+- All events: `isTrusted: true`
+
+**Bot detection signals (verified safe in Hyped Chrome):**
+- `navigator.webdriver` → `false` ✓
+- `navigator.plugins.length` → 5 ✓
+- `navigator.hardwareConcurrency` → 14 ✓
+- `isTrusted` on scroll events → `true` ✓
 
 ---
 
-## Action: Scroll the Feed
+## Action: Human-Like Scrolling (Anti-Detection)
+
+**Never use `agent-browser scroll down X` for feed browsing** — it fires no detectable scroll events on `<main>` and may look robotic. Instead, inject the human scroll engine:
+
+### Step 1 — Install the engine (once per session)
 
 ```bash
-agent-browser scroll down 1200
-sleep 2
-# Then read or screenshot again
+agent-browser eval "
+;(function() {
+  const main = document.querySelector('main')
+  function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min }
+  function sleep(ms) { return new Promise(r => setTimeout(r, ms)) }
+
+  async function humanScroll(totalDistance) {
+    let scrolled = 0
+    const startTop = main.scrollTop
+
+    while (scrolled < totalDistance) {
+      const remaining = totalDistance - scrolled
+      const chunkMin = Math.min(200, remaining)
+      const chunkMax = Math.min(700, remaining)
+      const chunk = randInt(chunkMin, chunkMax)
+
+      // Slow down near sentinel zone to let lazy loading fire cleanly
+      const distToBottom = main.scrollHeight - main.scrollTop - main.clientHeight
+      const amount = distToBottom < 800 ? Math.min(chunk, distToBottom - 100) : chunk
+      if (amount <= 0) break
+
+      // Smooth scroll with native browser easing (isTrusted: true)
+      main.scrollTo({ top: main.scrollTop + amount, behavior: 'smooth' })
+      scrolled += amount
+
+      // Wait for smooth scroll animation to complete
+      await sleep(600 + randInt(0, 200))
+
+      // 10% chance: scroll back a little (humans re-read)
+      if (Math.random() < 0.10) {
+        main.scrollTo({ top: main.scrollTop - randInt(50, 150), behavior: 'smooth' })
+        await sleep(400 + randInt(0, 300))
+        scrolled -= 100
+      }
+
+      // Reading pause — longer for larger chunks (simulates reading)
+      await sleep(randInt(1500, Math.min(6000, 1500 + chunk * 5)))
+    }
+
+    return { finalScrollTop: main.scrollTop, covered: main.scrollTop - startTop }
+  }
+
+  window.humanScroll = humanScroll
+  window.getPostTexts = function() {
+    return document.body.innerText.split('Feed post').slice(1).map(p => p.slice(0, 400).trim())
+  }
+  return 'engine ready, scrollTop=' + main.scrollTop
+})()"
 ```
 
-Scroll in increments of 800–1500px. Use `sleep 2` after each scroll to allow lazy-loaded content to render.
+### Step 2 — Scroll and collect posts
+
+```bash
+# Scroll 2000px in a human-like way (takes ~20-30 seconds with reading pauses)
+agent-browser eval "humanScroll(2000).then(r => { window.__scrollResult = r })"
+sleep 25
+
+# Collect results
+agent-browser eval "JSON.stringify({ result: window.__scrollResult, posts: window.getPostTexts().length })"
+
+# Read all post text
+agent-browser eval "JSON.stringify(window.getPostTexts())"
+```
+
+**Typical output:** 15–20 posts per 2000px of scroll, scrollHeight grows automatically as lazy loading fires.
+
+---
+
+## Action: Read Feed Posts
+
+After scrolling, extract all posts:
+
+```bash
+agent-browser eval "
+document.body.innerText
+  .split('Feed post')
+  .slice(1)
+  .map((p, i) => (i+1) + '. ' + p.slice(0, 300))
+  .join('\n---\n')
+"
+```
+
+Parse the result for: author name, post content, reaction count ("X others reacted").
 
 ---
 
@@ -77,15 +171,16 @@ Scroll in increments of 800–1500px. Use `sleep 2` after each scroll to allow l
 
 LinkedIn's save flow uses the `...` control menu on each post.
 
-**Step 1 — Get a snapshot to find the menu button ref:**
+**Step 1 — Find the menu button ref:**
 
 ```bash
 agent-browser snapshot 2>&1 | grep -i "control menu\|save"
 ```
 
-This returns refs like:
+Returns refs like:
 ```
 - button "Open control menu for post by Maor Shlomo" [expanded=false, ref=e40]
+  menuitem "Save" [ref=e208]
 ```
 
 **Step 2 — Click the control menu:**
@@ -95,28 +190,24 @@ agent-browser click @e40
 sleep 1
 ```
 
-**Step 3 — Click Save from the dropdown:**
+**Step 3 — Click Save:**
 
 ```bash
-# Find the Save menuitem ref
 agent-browser snapshot 2>&1 | grep -i "save"
-# Returns: menuitem "Save" [ref=e208]
-
+# → menuitem "Save" [ref=e208]
 agent-browser click @e208
 sleep 1
 ```
 
-Each post has its own `Open control menu for post by [Author]` button. Use `snapshot` + `grep` to locate the right ref per post.
+Each post has its own `Open control menu for post by [Author]` button. Re-snapshot after each page update — refs change.
 
 ---
 
-## Action: Take a Screenshot and Send to Telegram
+## Action: Screenshot and Send to Telegram
 
 ```bash
 agent-browser screenshot /tmp/linkedin_shot.png
 ```
-
-Then wrap in a media tag to deliver to Telegram:
 
 ```
 <media>/tmp/linkedin_shot.png</media>
@@ -126,35 +217,35 @@ Then wrap in a media tag to deliver to Telegram:
 
 ## Digest Workflow
 
-When asked to surface interesting posts:
-
 1. Open the feed
-2. Read post text via `eval`
-3. Scroll 2–3 times, collecting more posts each time
-4. Identify posts relevant to user's interests (AI, engineering, startups, Israel tech scene)
-5. Summarize the top 3–5 as a digest with: **author**, **topic**, **why it's interesting**, **reaction count**
-6. Optionally save the most relevant ones
+2. Install human scroll engine (Step 1 above)
+3. Run `humanScroll(3000)` and wait ~35 seconds
+4. Call `getPostTexts()` — returns all loaded posts
+5. Rank by relevance to user's interests: AI, engineering, startups, Israel tech scene, LangTalks/language learning
+6. Present top 3–5 with: **author**, **topic**, **why interesting**, **reaction count**
+7. Save the top 1–2 picks using the save flow above
 
 ---
 
 ## Quick Reference
 
-| Action | Command |
+| Action | Method |
 |---|---|
 | Connect to Chrome | `agent-browser connect 9223` |
 | Open feed | `agent-browser open https://www.linkedin.com/feed/` |
-| Scroll down | `agent-browser scroll down 1200` |
-| Read visible text | `agent-browser eval "document.body.innerText.slice(0, 5000)"` |
-| Find post menus | `agent-browser snapshot 2>&1 \| grep -i "control menu"` |
-| Open post menu | `agent-browser click @eN` |
-| Save post | Click `Open control menu` → find `menuitem "Save"` → click it |
+| Human scroll | `humanScroll(2000)` via eval (see engine above) |
+| Read posts | `window.getPostTexts()` via eval |
+| Find post menus | `agent-browser snapshot \| grep "control menu"` |
+| Save post | Click `Open control menu` → `menuitem "Save"` |
 | Screenshot | `agent-browser screenshot /tmp/shot.png` |
 
 ---
 
 ## Common Mistakes
 
-- **Wrong tab active** — after `connect`, always explicitly navigate to `https://www.linkedin.com/feed/`. Don't assume the current tab is the feed.
-- **Stale refs** — snapshot refs (`@eN`) change after scrolling or page updates. Always re-snapshot before clicking.
-- **No sleep after scroll** — LinkedIn lazy-loads content. Always `sleep 2` after scrolling before reading or snapshotting.
-- **Launching Chrome via agent-browser** — never do this. Always launch Chrome manually with the flags above, then `connect`. Letting agent-browser launch Chrome adds `--enable-automation` which breaks Google login.
+- **Using `agent-browser scroll` for feed reading** — fires no scroll events on `<main>`, may miss lazy loading. Use `humanScroll()` via eval instead.
+- **Not waiting after humanScroll** — sleep 25+ seconds after triggering the async scroll before reading posts.
+- **Stale refs** — `@eN` refs reset after every scroll/update. Always re-snapshot before clicking.
+- **Assuming content loaded** — check `window.getPostTexts().length` before parsing; if 0, scroll more.
+- **Launching Chrome via agent-browser** — always launch manually with the flags above. agent-browser-launched Chrome adds `--enable-automation` which breaks Google login.
+- **Scrolling too fast past sentinel** — LinkedIn needs ~500ms after the sentinel enters view to fire the XHR. The engine handles this automatically by slowing down when `distToBottom < 800`.
