@@ -70,6 +70,10 @@ Modes: **Brainstorm** (design questions as flags), **Spec review** (spec section
 
 Read the full skill for URL patterns, scoring thresholds, photo sourcing, and the cross-validation gap table.
 
+### `linkedin-account-manager-agent`
+**When:** User wants to browse LinkedIn, get a feed digest, save posts, or manage their LinkedIn presence.  
+**How:** Authenticated browsing via Hyped Chrome profile (CDP port 9223). Read the full skill for the complete action reference: connecting, scrolling, reading posts, and saving.
+
 ### `record-browser-session`
 **When:** User asks to record a browser session, capture a browsing demo, or send a video of web navigation.  
 **How:** `agent-browser record start /tmp/session.webm` → browse with `sleep 2–3` between actions → `agent-browser record stop` → **always** convert: `ffmpeg -i /tmp/session.webm -c:v libx264 -preset fast -crf 23 -c:a aac /tmp/session.mp4 -y` → send `<media>/tmp/session.mp4</media>`. Telegram only accepts `.mp4 .mov .avi .mkv` — never send `.webm` directly.
