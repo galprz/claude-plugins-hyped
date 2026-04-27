@@ -1,22 +1,21 @@
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
-import { handleWorkspaceSet } from './tools.ts';
+import { handleSetGroupName } from './tools.ts';
 
 const TOOLS = [
   {
-    name: 'workspace_set',
+    name: 'set_group_name',
     description:
-      'Create a git worktree for a new task and rename the Telegram group to reflect it. ' +
-      'Call this before starting implementation on a new feature. ' +
-      'Returns the worktree path and branch name to use going forward.',
+      'Set the Telegram group name/title. ' +
+      'Use this to rename the current Telegram group to reflect the active task or project.',
     inputSchema: {
       type: 'object',
       required: ['name', 'chat_id'],
       properties: {
         name: {
           type: 'string',
-          description: 'Short kebab-case task name (e.g. "auth-system", "fix-login"). Lowercase, hyphens only.',
+          description: 'The new group name/title.',
         },
         chat_id: {
           type: 'number',
@@ -40,8 +39,8 @@ server.setRequestHandler(CallToolRequestSchema, async req => {
   try {
     let result: string;
     switch (name) {
-      case 'workspace_set':
-        result = await handleWorkspaceSet({ name: a.name, chat_id: a.chat_id });
+      case 'set_group_name':
+        result = await handleSetGroupName({ name: a.name, chat_id: a.chat_id });
         break;
       default:
         throw new Error(`Unknown tool: ${name}`);
