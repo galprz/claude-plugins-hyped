@@ -61,32 +61,26 @@ IDs shown in `cron_list` output.
 
 ## Edit a job (schedule or prompt)
 
-There is no `cron_update` tool — edits go directly to `jobs.json`.
+**⚠️ NEVER edit `jobs.json` directly to change a schedule.** The daemon overwrites the file on every tick — direct edits race and get lost within 60 seconds.
 
-**Step 1 — Find the file:**
+### Changing the schedule → delete + recreate
+
+1. Call `cron_list` to get the job's current prompt, instructions, tools, and workspace_mode
+2. Call `cron_remove` with the job ID
+3. Call `cron_create` with the same prompt/instructions/tools but the new schedule
+
+This is the only reliable way to change a schedule.
+
+### Changing only the prompt or instructions (not schedule)
+
+There is no `cron_update` tool. For prompt/instruction-only changes, edit the workspace files directly — the daemon reads these fresh each run, not from jobs.json:
+
+**Isolated jobs** — edit the workspace CLAUDE.md:
 ```
-~/.hyped/cron/jobs.json
+{job_working_dir}/CLAUDE.md   (path is in job's job_working_dir field from cron_list)
 ```
 
-**Step 2 — Edit the JSON entry for the matching job ID.**
-
-Schedule field formats:
-| User says | JSON value |
-|-----------|-----------|
-| "every 1h" | `{"type": "every", "seconds": 3600}` |
-| "every 30m" | `{"type": "every", "seconds": 1800}` |
-| "every N min/h" | `{"type": "every", "seconds": N*60 or N*3600}` |
-| cron expression | `{"type": "cron", "expr": "0 9 * * *"}` |
-
-After changing the schedule, also update `next_run` to a future ISO8601 UTC timestamp (e.g. 1 hour from now).
-
-**Step 3 — Update the workspace CLAUDE.md** (for isolated jobs):
-```
-{job_working_dir}/CLAUDE.md   (path is in job's job_working_dir field)
-```
-Update the `**Schedule:**` line to match the new schedule.
-
-**The daemon re-reads `jobs.json` on every tick (every 60s) — no restart needed.**
+**Project jobs** — edit the prompt in `~/.hyped/cron/jobs.json`. For prompt-only edits the race window is acceptable since the daemon only uses the prompt at run time, not on every tick.
 
 ## Trigger a job manually
 
